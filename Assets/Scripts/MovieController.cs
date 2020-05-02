@@ -89,7 +89,7 @@ public class MovieController : MonoBehaviour
     {
         for (;;) {
             yield return new WaitForEndOfFrame();
-            GL.IssuePluginEvent(AVPlayerConnect.AVPlayerGetRenderEventFunc(), 0);
+            GL.IssuePluginEvent(AVPlayerConnect.AVPlayerGetRenderEventFunc(), AVPlayerConnect.AVPlayerGetEventID(avPlayer));
         }
     }
 }

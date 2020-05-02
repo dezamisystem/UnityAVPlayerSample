@@ -3,6 +3,8 @@
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
+        [Toggle] _FLIP_X("Flip X", Float) = 0
+        [Toggle] _FLIP_Y("Flip Y", Float) = 0
     }
     SubShader
     {
@@ -16,6 +18,9 @@
             #pragma fragment frag
             // make fog work
             #pragma multi_compile_fog
+            // Flip
+            #pragma shader_feature _ _FLIP_X_ON
+            #pragma shader_feature _ _FLIP_Y_ON
 
             #include "UnityCG.cginc"
 
@@ -47,9 +52,18 @@
             fixed4 frag (v2f i) : SV_Target
             {
                 // sample the texture
-                fixed4 col = tex2D(_MainTex, i.uv);
+                float2 uv = i.uv;
+                // Flip
+#ifdef _FLIP_X_ON
+                uv.x = 1.0 - uv.x;
+#endif
+#ifdef _FLIP_Y_ON
+                uv.y = 1.0 - uv.y;
+#endif
+                fixed4 col = tex2D(_MainTex, uv);
+                // fixed4 col = tex2D(_MainTex, i.uv);
                 // apply fog
-                UNITY_APPLY_FOG(i.fogCoord, col);
+                // UNITY_APPLY_FOG(i.fogCoord, col);
                 return col;
             }
             ENDCG

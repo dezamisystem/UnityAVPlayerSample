@@ -20,11 +20,15 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface AVPlayerOperater : NSObject
 
+@property (assign, nonatomic) NSUInteger index;
+
 @property (strong, nonatomic) id<AVPlayerOperaterDelegate> delegate;
 
 @property (strong, nonatomic) AVPlayerCallback* playerCallback;
 
-- (id)initWithMetal;
+- (id)initWithIndex:(NSUInteger)index;
+
+- (id<MTLTexture>)getOutputTexture;
 
 - (void)setOutputTexture:(id<MTLTexture>)texture;
 
@@ -47,6 +51,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (float)getDuration;
 
 - (BOOL)isPlaying;
+
+- (void)updateVideo;
 
 @end
 

@@ -53,8 +53,8 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
 #pragma mark - Wrapper
 
 // Wrapper members
-static NSMutableDictionary<NSString*,AVPlayerOperater*>* s_avPlayerOperaterMap = [NSMutableDictionary dictionary];
-static int s_avPlayerOperaterNumber = 0;
+static NSMutableDictionary<NSNumber*,AVPlayerOperater*>* s_avPlayerOperaterMap = [NSMutableDictionary dictionary];
+static NSUInteger s_avPlayerOperaterNumber = 0;
 
 static bool isExistOperater(AVPlayerOperater* op)
 {
@@ -66,14 +66,22 @@ static bool isExistOperater(AVPlayerOperater* op)
 }
 
 // Wrapper methods
+extern "C" int AVPlayerGetEventID(AVPlayerOperater* op)
+{
+	if (!isExistOperater(op)) {
+		return 0;
+	}
+	return (int)op.index;
+}
+
 extern "C" AVPlayerOperater* AVPlayerCreate()
 {
 	NSLog(@"AVPlayerPlugin: AVPlayerCreate");
 
-	AVPlayerOperater* op = [[AVPlayerOperater alloc] initWithMetal];
 	s_avPlayerOperaterNumber ++;
-	NSString* key = [NSString stringWithFormat:@"%d", s_avPlayerOperaterNumber];
-	[s_avPlayerOperaterMap setValue:op forKey:key];
+	AVPlayerOperater* op = [[AVPlayerOperater alloc] initWithIndex:s_avPlayerOperaterNumber];
+	NSNumber* num = [NSNumber numberWithUnsignedInteger:s_avPlayerOperaterNumber];
+	[s_avPlayerOperaterMap setDictionary:@{num : op}];
 	return op;
 }
 
@@ -140,12 +148,8 @@ extern "C" void AVPlayerClose(AVPlayerOperater* op)
 		return;
 	}
 	[op closeAll];
-	for (NSString* key in [s_avPlayerOperaterMap keyEnumerator]) {
-		if (op == [s_avPlayerOperaterMap valueForKey:key]) {
-			[s_avPlayerOperaterMap removeObjectForKey:key];
-			break;
-		}
-	}
+	NSNumber* primaryKey = [NSNumber numberWithUnsignedInteger:op.index];
+	[s_avPlayerOperaterMap removeObjectForKey:primaryKey];	
 }
 
 extern "C" float AVPlayerGetCurrentPosition(AVPlayerOperater* op)
@@ -217,14 +221,23 @@ extern "C" void AVPlayerSetOnEndTime(AVPlayerOperater* op, const char* objectNam
 	op.playerCallback.unityMethodNameDidEnd = [NSString stringWithUTF8String:methodName];
 }
 
-
 #pragma mark - Render
 
 // 特定のレンダリングイベントを処理するプラグイン関数
 static void UNITY_INTERFACE_API OnRenderEvent(int eventID)
 {
-    //TODO: ユーザーレンダリングコード
-	
+	if (s_avPlayerOperaterMap.count == 0) {
+		return;
+	}
+	if (eventID < 0) {
+		return;
+	}
+	NSUInteger index = (NSUInteger)eventID;
+	NSNumber* key = [NSNumber numberWithUnsignedInteger:index];
+	AVPlayerOperater* op = s_avPlayerOperaterMap[key];
+	if (op != nil) {
+		[op updateVideo];
+	}
 }
     
 // プラグイン特有のスクリプトにコールバックを渡すための自由に定義した関数

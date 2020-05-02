@@ -16,6 +16,13 @@ namespace AVPlayer {
 
         #if UNITY_IOS
             [DllImport ("__Internal")]
+            public static extern int AVPlayerGetEventID(IntPtr op);
+        #else
+            public static int AVPlayerGetEventID() { return 0; }
+        #endif
+
+        #if UNITY_IOS
+            [DllImport ("__Internal")]
             public static extern IntPtr AVPlayerCreate();
         #else
             public static IntPtr AVPlayerCreate() { return IntPtr.Zero; }
