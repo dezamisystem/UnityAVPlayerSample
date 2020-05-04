@@ -44,6 +44,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)setVolume:(float)volume;
 
+- (void)setLoop:(BOOL)loop;
+
 - (void)closeAll;
 
 - (float)getCurrentSconds;

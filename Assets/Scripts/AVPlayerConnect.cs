@@ -86,6 +86,13 @@ namespace AVPlayer {
 
         #if UNITY_IOS
             [DllImport ("__Internal")]
+            public static extern void AVPlayerSetLoop(IntPtr op, bool loop);
+        #else
+            public static void AVPlayerSetLoop(IntPtr op, bool loop) {}
+        #endif
+
+        #if UNITY_IOS
+            [DllImport ("__Internal")]
             public static extern void AVPlayerClose(IntPtr op);
         #else
             public static void AVPlayerClose(IntPtr op) {}

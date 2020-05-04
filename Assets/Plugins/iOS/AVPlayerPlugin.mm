@@ -173,6 +173,14 @@ extern "C" void AVPlayerSetVolume(AVPlayerOperater* op, float volume)
 	[op setVolume:volume];
 }
 
+extern "C" void AVPlayerSetLoop(AVPlayerOperater* op, bool loop)
+{
+	if (!isExistOperater(op)) {
+		return;
+	}
+	[op setLoop:loop];
+}
+
 extern "C" void AVPlayerClose(AVPlayerOperater* op)
 {
 	if (!isExistOperater(op)) {

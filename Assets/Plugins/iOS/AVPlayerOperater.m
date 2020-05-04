@@ -18,6 +18,7 @@
 @property (nonnull, nonatomic) MTLDeviceRef metalDevice;
 @property (strong, nonatomic) id<MTLTexture> inputTexture;
 @property (strong, nonatomic) id<MTLTexture> outputTexture;
+@property (assign, nonatomic) BOOL isLoopPlay;
 
 @end
 
@@ -138,6 +139,11 @@ static void* _ObservePresentationSizeContext = (void*)0x3;
 	_avPlayer.volume = volume;
 }
 
+- (void)setLoop:(BOOL)loop
+{
+	_isLoopPlay = loop;
+}
+
 - (void)closeAll
 {
 	NSLog(@"AVPlayerOperater: closeAll");
@@ -227,7 +233,14 @@ static void* _ObservePresentationSizeContext = (void*)0x3;
 
 - (void)didPlayToEndTime:(NSNotification*)notification
 {
-	[self.playerCallback onEndTime];
+	if (_isLoopPlay) {
+		[_avPlayer seekToTime:kCMTimeZero completionHandler:^(BOOL finished) {
+			[_avPlayer play];
+		}];
+	}
+	else {
+		[self.playerCallback onEndTime];
+	}
 }
 
 #pragma mark - Private
