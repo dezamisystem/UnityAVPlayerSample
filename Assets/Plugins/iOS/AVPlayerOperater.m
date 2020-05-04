@@ -6,22 +6,18 @@
 #import "AVPlayerOperater.h"
 
 @interface AVPlayerOperater ()
-{
-	MTLDeviceRef _metalDevice;
-	
+{	
 	MTLCommandQueueRef _commandQueue;
 	CVMetalTextureCacheRef _textureCache;
-	
-	NSUInteger _videoWidth;
-	NSUInteger _videoHeight;
-	
-	id<MTLTexture> _inputTexture;
-	id<MTLTexture> _outputTexture;
 	
 	AVPlayer* _avPlayer;
 	AVPlayerItemVideoOutput* _videoOutput;
 	AVPlayerItem* _avPlayerItem;
 }
+
+@property (nonnull, nonatomic) MTLDeviceRef metalDevice;
+@property (strong, nonatomic) id<MTLTexture> inputTexture;
+@property (strong, nonatomic) id<MTLTexture> outputTexture;
 
 @end
 
@@ -36,7 +32,7 @@ static void* _ObservePresentationSizeContext = (void*)0x3;
 	return nil;
 }
 
-- (id)initWithIndex:(NSUInteger)index
+- (id)initWithIndex:(NSUInteger)index device:(MTLDeviceRef)device
 {
 	if (self = [super init]) {
 		self.index = index;
@@ -47,12 +43,10 @@ static void* _ObservePresentationSizeContext = (void*)0x3;
 					   options:options
 					   context:_ObservePlayerItemContext];
 		// Metal
-		_metalDevice = MTLCreateSystemDefaultDevice();
-		_commandQueue = [_metalDevice newCommandQueue];
-		CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, _metalDevice, nil, &_textureCache);
+		_metalDevice = device;
+		_commandQueue = [device newCommandQueue];
+		CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &_textureCache);
 		// Video
-		_videoWidth = 0;
-		_videoHeight = 0;
 		NSDictionary<NSString*,id>* attributes = @{
 			(NSString*)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_32BGRA)
 		};
@@ -118,11 +112,15 @@ static void* _ObservePresentationSizeContext = (void*)0x3;
 
 - (void)pauseWhenReady
 {
+	NSLog(@"AVPlayerOperater: pauseWhenReady");
+
 	[_avPlayer pause];
 }
 
 - (void)seekWithSeconds:(float)seconds
 {
+	NSLog(@"AVPlayerOperater: seekWithSeconds");
+
 	CMTime position = CMTimeMakeWithSeconds(seconds, NSEC_PER_SEC);
 	[_avPlayer seekToTime:position completionHandler:^(BOOL finished) {
 		// callback
@@ -142,10 +140,10 @@ static void* _ObservePresentationSizeContext = (void*)0x3;
 
 - (void)closeAll
 {
+	NSLog(@"AVPlayerOperater: closeAll");
+
 	[NSNotificationCenter.defaultCenter removeObserver:self];
 	[_avPlayer removeObserver:self forKeyPath:@"status"];
-	_videoWidth = 0;
-	_videoHeight = 0;
 	[_avPlayer replaceCurrentItemWithPlayerItem:nil];
 	[_avPlayerItem removeOutput:_videoOutput];
 	_avPlayerItem = nil;
@@ -184,7 +182,7 @@ static void* _ObservePresentationSizeContext = (void*)0x3;
 {
 	NSLog(@"AVPlayerOperater: observeValueForKeyPath = %@", keyPath);
 
-	NSKeyValueObservingOptions options = NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew;
+	NSKeyValueObservingOptions options = NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew;
 	if (context == _ObservePlayerItemContext) {
 		AVPlayerItem* playerItem = (AVPlayerItem*)object;
 		[playerItem addObserver:self
@@ -196,19 +194,24 @@ static void* _ObservePresentationSizeContext = (void*)0x3;
 	else if (context == _ObserveItemStatusContext) {
 		AVPlayerStatus status = [[change objectForKey:NSKeyValueChangeNewKey] integerValue];
 		if (status == AVPlayerItemStatusReadyToPlay) {
-			AVPlayerItem* playerItem = (AVPlayerItem*)object;
-			[playerItem addObserver:self
-						 forKeyPath:@"presentationSize"
-							options:options
-							context:_ObservePresentationSizeContext];
-			// callback
-			[self.playerCallback onReady];
+			[_avPlayer addObserver:self
+						forKeyPath:@"currentItem.presentationSize"
+						   options:options
+						   context:_ObservePresentationSizeContext];
 		}
 		NSLog(@"AVPlayerOperater: New status");
 	}
 	else if (context == _ObservePresentationSizeContext) {
-		AVPlayerItem* playerItem = (AVPlayerItem*)object;
+		AVPlayerItem* playerItem = _avPlayer.currentItem;
 		NSLog(@"AVPlayerOperater: New presentationSize (%f, %f)", playerItem.presentationSize.width, playerItem.presentationSize.height);
+		if (_outputTexture == nil) {
+			CGSize videoSize = CGSizeMake(playerItem.presentationSize.width, playerItem.presentationSize.height);
+			[self createOutputTextureWithSize:videoSize];
+			if (_outputTexture != nil) {
+				// callback
+				[self.playerCallback onReady];
+			}
+		}
 	}
 	else {
 		[super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
@@ -253,6 +256,21 @@ static void* _ObservePresentationSizeContext = (void*)0x3;
 	[_avPlayer replaceCurrentItemWithPlayerItem: _avPlayerItem];
 }
 
+- (void)createOutputTextureWithSize:(CGSize)videoSize
+{
+	if (videoSize.width == 0) {
+		return;
+	}
+	if (videoSize.height == 0) {
+		return;
+	}
+	MTLTextureDescriptor* descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+																						  width:videoSize.width
+																						 height:videoSize.height
+																					  mipmapped:NO];
+	_outputTexture = [_metalDevice newTextureWithDescriptor:descriptor];
+}
+
 - (void)readBuffer
 {
 	if (_metalDevice == nil) {
@@ -283,55 +301,39 @@ static void* _ObservePresentationSizeContext = (void*)0x3;
 																		0,
 																		&cvTextureOut);
 			if(status == kCVReturnSuccess) {
-				_videoWidth = width;
-				_videoHeight = height;
 				_inputTexture = CVMetalTextureGetTexture(cvTextureOut);
 				CFRelease(cvTextureOut);
 			}
 			CFRelease(pixelBuffer);
+			
+			[self copyTextureWithWidth:width height:height];
 		}
 	} // autoreleasepool
 }
 
-- (void)copyTexture
+- (void)copyTextureWithWidth:(NSUInteger)width height:(NSUInteger)height
 {
-	if (_commandQueue == nil) {
-		return;
-	}
 	if (_inputTexture == nil) {
 		return;
 	}
 	if (_outputTexture == nil) {
 		return;
 	}
-	if (_videoWidth == 0) {
-		return;
-	}
-	if (_videoHeight == 0) {
-		return;
-	}
-	
-	MTLCommandBufferRef cmdBuffer = [_commandQueue commandBuffer];
-	id<MTLBlitCommandEncoder> encoder = [cmdBuffer blitCommandEncoder];
+
+	MTLCommandBufferRef commandBuffer = [_commandQueue commandBuffer];
+	id<MTLBlitCommandEncoder> encoder = [commandBuffer blitCommandEncoder];
 	[encoder copyFromTexture:_inputTexture
 				 sourceSlice:0
 				 sourceLevel:0
 				sourceOrigin:MTLOriginMake(0, 0, 0)
-				  sourceSize:MTLSizeMake(_videoWidth, _videoHeight, _inputTexture.depth)
+				  sourceSize:MTLSizeMake(width, height, _inputTexture.depth)
 				   toTexture:_outputTexture
 			destinationSlice:0
 			destinationLevel:0
 		   destinationOrigin:MTLOriginMake(0, 0, 0)];
 	[encoder endEncoding];
-	_inputTexture = nil;
-}
-
-- (NSArray*)getTracksWithMediaType:(AVMediaType)type
-{
-	if (_avPlayerItem == nil) {
-		return nil;
-	}
-	return [_avPlayerItem.asset tracksWithMediaType:type];
+	[commandBuffer commit];
+	[commandBuffer waitUntilCompleted];
 }
 
 @end

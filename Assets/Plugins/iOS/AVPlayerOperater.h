@@ -26,7 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (strong, nonatomic) AVPlayerCallback* playerCallback;
 
-- (id)initWithIndex:(NSUInteger)index;
+- (id)initWithIndex:(NSUInteger)index device:(MTLDeviceRef)device;
 
 - (id<MTLTexture>)getOutputTexture;
 

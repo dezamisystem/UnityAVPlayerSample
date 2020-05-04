@@ -23,6 +23,20 @@ namespace AVPlayer {
 
         #if UNITY_IOS
             [DllImport ("__Internal")]
+            public static extern IntPtr AVPlayerGetTexturePtr(IntPtr op);
+        #else
+            public static IntPtr AVPlayerGetTexturePtr(IntPtr op) { IntPtr.Zero; }
+        #endif
+
+        #if UNITY_IOS
+            [DllImport ("__Internal")]
+            public static extern void AVPlayerSetTexturePtr(IntPtr op, IntPtr texture);
+        #else
+            public static void AVPlayerSetTexturePtr(IntPtr op, IntPtr texture) {}
+        #endif
+
+        #if UNITY_IOS
+            [DllImport ("__Internal")]
             public static extern IntPtr AVPlayerCreate();
         #else
             public static IntPtr AVPlayerCreate() { return IntPtr.Zero; }

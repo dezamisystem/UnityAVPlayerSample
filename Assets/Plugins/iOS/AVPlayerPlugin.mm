@@ -3,12 +3,13 @@
 
 #include "IUnityInterface.h"
 #include "IUnityGraphics.h"
-
+#include "IUnityGraphicsMetal.h"
 #include "AVPlayerOperater.h"
     
 static IUnityInterfaces* s_UnityInterfaces = NULL;
 static IUnityGraphics* s_Graphics = NULL;
-static UnityGfxRenderer s_RendererType = kUnityGfxRendererNull;
+static IUnityGraphicsMetal* s_MetalGraphics = NULL;
+static bool initialized = false;
 
 static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType)
 {
@@ -16,14 +17,12 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
     {
         case kUnityGfxDeviceEventInitialize:
         {
-            s_RendererType = s_Graphics->GetRenderer();
-            //TODO: ユーザー初期化コード
+			initialized = false;
             break;
         }
         case kUnityGfxDeviceEventShutdown:
         {
-            s_RendererType = kUnityGfxRendererNull;
-            //TODO: ユーザーシャットダウンコード
+			initialized = false;
             break;
         }
 		default:
@@ -36,6 +35,7 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
 {
     s_UnityInterfaces = unityInterfaces;
     s_Graphics = unityInterfaces->Get<IUnityGraphics>();
+	s_MetalGraphics   = s_UnityInterfaces->Get<IUnityGraphicsMetal>();
         
     s_Graphics->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
         
@@ -66,6 +66,16 @@ static bool isExistOperater(AVPlayerOperater* op)
 }
 
 // Wrapper methods
+
+// Attach the functions to the callback of plugin loaded event.
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API AVPlayerAttachPlugin()
+{
+	if (!initialized) {
+		UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
+		initialized = true;
+	}
+}
+
 extern "C" int AVPlayerGetEventID(AVPlayerOperater* op)
 {
 	if (!isExistOperater(op)) {
@@ -74,12 +84,33 @@ extern "C" int AVPlayerGetEventID(AVPlayerOperater* op)
 	return (int)op.index;
 }
 
+extern "C" id<MTLTexture> AVPlayerGetTexturePtr(AVPlayerOperater* op)
+{
+	if (!isExistOperater(op)) {
+		return nil;
+	}
+	return [op getOutputTexture];
+}
+
+extern "C" void AVPlayerSetTexturePtr(AVPlayerOperater* op, id<MTLTexture> texture)
+{
+	if (!isExistOperater(op)) {
+		return;
+	}
+	[op setOutputTexture:texture];
+}
+
 extern "C" AVPlayerOperater* AVPlayerCreate()
 {
 	NSLog(@"AVPlayerPlugin: AVPlayerCreate");
 
+	if (!initialized) {
+		UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
+		initialized = true;
+	}
+	
 	s_avPlayerOperaterNumber ++;
-	AVPlayerOperater* op = [[AVPlayerOperater alloc] initWithIndex:s_avPlayerOperaterNumber];
+	AVPlayerOperater* op = [[AVPlayerOperater alloc] initWithIndex:s_avPlayerOperaterNumber device:s_MetalGraphics->MetalDevice()];
 	NSNumber* num = [NSNumber numberWithUnsignedInteger:s_avPlayerOperaterNumber];
 	[s_avPlayerOperaterMap setDictionary:@{num : op}];
 	return op;

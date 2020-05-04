@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: VideoOutput
   m_Shader: {fileID: 4800000, guid: d969c913cebc248fd8a78ebb262bdad4, type: 3}
-  m_ShaderKeywords: 
+  m_ShaderKeywords: _FLIP_Y_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -61,7 +61,7 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _FLIP_X: 0
-    - _FLIP_Y: 0
+    - _FLIP_Y: 1
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1

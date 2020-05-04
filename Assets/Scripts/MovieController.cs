@@ -7,6 +7,7 @@ using AVPlayer;
 
 public class MovieController : MonoBehaviour
 {
+    public RawImage videoImage;
     public Button prepareButton;
     public Button playButton;
     public Text currentTimeText;
@@ -40,6 +41,20 @@ public class MovieController : MonoBehaviour
 
     private void CallbackReadyPlayer(string message)
     {
+        IntPtr texPtr = AVPlayerConnect.AVPlayerGetTexturePtr(avPlayer);
+        Texture2D texture = Texture2D.CreateExternalTexture(
+            512,
+            512,
+            TextureFormat.BGRA32,
+            false,
+            false,
+            texPtr);
+        texture.UpdateExternalTexture(texPtr);
+        if (videoImage != null)
+        {
+            videoImage.texture = texture;
+        }
+
         AVPlayerConnect.AVPlayerSetOnEndTime(avPlayer, transform.root.gameObject.name, ((Action<string>)CallbackEndTime).Method.Name);
 
         if (prepareButton != null)

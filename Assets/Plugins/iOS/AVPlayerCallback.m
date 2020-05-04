@@ -13,6 +13,7 @@
 -(void)onReady
 {
 	NSLog(@"AVPlayerCallback: onReady");
+
 	if (self.unityObjectName == nil || self.unityMethodNameDidReady == nil) {
 		return;
 	}
@@ -30,9 +31,12 @@
 
 -(void)onSeek
 {
+	NSLog(@"AVPlayerCallback: onSeek");
+
 	if (self.unityObjectName == nil || self.unityMethodNameDidSeek == nil) {
 		return;
 	}
+	NSLog(@"object = %@, method = %@", self.unityObjectName, self.unityMethodNameDidSeek);
 	const char* objectName = [self.unityObjectName UTF8String];
 	if (objectName == nil) {
 		return;
@@ -46,9 +50,12 @@
 
 -(void)onEndTime
 {
+	NSLog(@"AVPlayerCallback: onEndTime");
+
 	if (self.unityObjectName == nil || self.unityMethodNameDidEnd == nil) {
 		return;
 	}
+	NSLog(@"object = %@, method = %@", self.unityObjectName, self.unityMethodNameDidEnd);
 	const char* objectName = [self.unityObjectName UTF8String];
 	if (objectName == nil) {
 		return;
