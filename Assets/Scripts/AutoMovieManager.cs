@@ -44,7 +44,11 @@ public class AutoMovieManager : MonoBehaviour
             Renderer renderer = videoObject.GetComponent<Renderer>();
             if (renderer != null)
             {
-                renderer.material.mainTexture = texture;
+                Vector2 scale = new Vector2(1f,-1f);
+                Material material = renderer.material;
+                material.SetTextureScale("_MainTex", scale);
+                material.SetTexture("_MainTex", texture);
+                renderer.material = material;
             }
         }
         // Render settings

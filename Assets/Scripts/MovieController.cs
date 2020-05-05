@@ -2,6 +2,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using UnityEngine.Assertions;
 using AVPlayer;
 
@@ -71,6 +72,10 @@ public class MovieController : MonoBehaviour
         if (videoImage != null)
         {
             videoImage.texture = texture;
+            Vector2 scale = new Vector2(1f,-1f);
+            Material material = videoImage.material;
+            material.SetTextureScale("_MainTex", scale);
+            videoImage.material = material;
         }
         StartCoroutine(OnRender());
 
@@ -140,19 +145,15 @@ public class MovieController : MonoBehaviour
     private void CallbackSeek(string message)
     {
         isSeekWaiting = false;
-        if (debugText != null)
-        {
-            debugText.text = message;
-        }
     }
 
-    public void SeekSliderPointerDown()
+    public void SeekSliderInitializePointerDrag()
     {
         isSeekSliderDoing = true;
         OnSeek();
         if (debugText != null)
         {
-            debugText.text = "SeekSliderBeginDrag";
+            debugText.text = "SeekSliderInitializePointerDrag";
         }
     }
 
@@ -161,13 +162,13 @@ public class MovieController : MonoBehaviour
         OnSeek();
     }
 
-    public void SeekSliderEndDrag()
+    public void SeekSliderPointerUp()
     {
         OnSeek();
         isSeekSliderDoing = false;
         if (debugText != null)
         {
-            debugText.text = "SeekSliderEndDrag";
+            debugText.text = "SeekSliderPointerUp";
         }
     }
 
@@ -197,9 +198,9 @@ public class MovieController : MonoBehaviour
             if (currentTimeText != null)
             {
                 currentTimeText.text = "["
-                + current
+                + Mathf.Floor(current)
                 + " | "
-                + duration
+                + Mathf.Floor(duration)
                 + "]";
             }
         }
@@ -209,7 +210,7 @@ public class MovieController : MonoBehaviour
     {
         for(;;)
         {
-            yield return null;
+            yield return new WaitForSeconds(0.5f);
             if (seekSlider != null && AVPlayerConnect.AVPlayerIsPlaying(avPlayer))
             {
                 if (!isSeekSliderDoing && !isSeekWaiting)
