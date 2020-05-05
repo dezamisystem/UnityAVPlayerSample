@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Assertions;
 using AVPlayer;
 
 public class MovieController : MonoBehaviour
@@ -15,15 +15,15 @@ public class MovieController : MonoBehaviour
     public Text debugText;
     private const string TEST_CONTENT_PATH = "https://dezamisystem.com/movie/vtuber/index.m3u8";
     private IntPtr avPlayer;
+    private int renderEventId;
+    private IntPtr renderEventFunc;
     private bool isSeekSliderDoing;
     private bool isSeekWaiting;
 
     // Start is called before the first frame update
     void Start()
     {
-        StartCoroutine(OnRender());
-
-        avPlayer = AVPlayerConnect.AVPlayerCreate();
+        avPlayer = IntPtr.Zero;
         isSeekSliderDoing = false;
         isSeekWaiting = false;
 
@@ -43,6 +43,12 @@ public class MovieController : MonoBehaviour
 
     public void OnPrepareMovie()
     {
+        if (avPlayer == IntPtr.Zero)
+        {
+            avPlayer = AVPlayerConnect.AVPlayerCreate();
+        }
+        renderEventId = AVPlayerConnect.AVPlayerGetEventID(avPlayer);
+        renderEventFunc = AVPlayerConnect.AVPlayerGetRenderEventFunc();
         AVPlayerConnect.AVPlayerSetOnReady(
             avPlayer,
             transform.root.gameObject.name,
@@ -52,6 +58,7 @@ public class MovieController : MonoBehaviour
 
     private void CallbackReadyPlayer(string message)
     {
+        // Texture settings
         IntPtr texPtr = AVPlayerConnect.AVPlayerGetTexturePtr(avPlayer);
         Texture2D texture = Texture2D.CreateExternalTexture(
             512,
@@ -65,7 +72,9 @@ public class MovieController : MonoBehaviour
         {
             videoImage.texture = texture;
         }
+        StartCoroutine(OnRender());
 
+        // Seek settings
         if (seekSlider != null)
         {
             seekSlider.interactable = true;
@@ -76,6 +85,7 @@ public class MovieController : MonoBehaviour
         StartCoroutine(OnUpdateText());
         StartCoroutine(OnUpdateSeekSlider());
 
+        // Callback settings
         AVPlayerConnect.AVPlayerSetOnEndTime(
             avPlayer,
             transform.root.gameObject.name,
@@ -85,6 +95,7 @@ public class MovieController : MonoBehaviour
             transform.root.gameObject.name,
             ((Action<string>)CallbackSeek).Method.Name);
 
+        // UI settings
         if (prepareButton != null)
         {
             prepareButton.interactable = false;
@@ -170,9 +181,9 @@ public class MovieController : MonoBehaviour
         for (;;) 
         {
             yield return new WaitForEndOfFrame();
-            GL.IssuePluginEvent(
-                AVPlayerConnect.AVPlayerGetRenderEventFunc(),
-                AVPlayerConnect.AVPlayerGetEventID(avPlayer));
+            Assert.IsFalse(renderEventFunc.Equals(IntPtr.Zero),"renderEventFunc is Zero");
+            Assert.IsTrue(renderEventId>0, "renderEventId <= 0");
+            GL.IssuePluginEvent(renderEventFunc,renderEventId);
         }
     }
 

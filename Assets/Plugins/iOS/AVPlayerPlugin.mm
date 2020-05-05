@@ -17,16 +17,16 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
     {
         case kUnityGfxDeviceEventInitialize:
         {
-			initialized = false;
+            initialized = false;
             break;
         }
         case kUnityGfxDeviceEventShutdown:
         {
-			initialized = false;
+            initialized = false;
             break;
         }
-		default:
-			break;
+        default:
+            break;
     };
 }
 
@@ -35,7 +35,7 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
 {
     s_UnityInterfaces = unityInterfaces;
     s_Graphics = unityInterfaces->Get<IUnityGraphics>();
-	s_MetalGraphics   = s_UnityInterfaces->Get<IUnityGraphicsMetal>();
+    s_MetalGraphics   = s_UnityInterfaces->Get<IUnityGraphicsMetal>();
         
     s_Graphics->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
         
@@ -58,11 +58,14 @@ static NSUInteger s_avPlayerOperaterNumber = 0;
 
 static bool isExistOperater(AVPlayerOperater* op)
 {
-	NSArray<AVPlayerOperater*>* list = [s_avPlayerOperaterMap allValues];
-	if ([list containsObject:op]) {
-		return true;
-	}
-	return false;
+    if (op == NULL) {
+        return false;
+    }
+    NSArray<AVPlayerOperater*>* list = [s_avPlayerOperaterMap allValues];
+    if ([list containsObject:op]) {
+        return true;
+    }
+    return false;
 }
 
 // Wrapper methods
@@ -70,194 +73,194 @@ static bool isExistOperater(AVPlayerOperater* op)
 // Attach the functions to the callback of plugin loaded event.
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API AVPlayerAttachPlugin()
 {
-	if (!initialized) {
-		UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
-		initialized = true;
-	}
+    if (!initialized) {
+        UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
+        initialized = true;
+    }
 }
 
 extern "C" int AVPlayerGetEventID(AVPlayerOperater* op)
 {
-	if (!isExistOperater(op)) {
-		return 0;
-	}
-	return (int)op.index;
+    if (!isExistOperater(op)) {
+        return -1;
+    }
+    return (int)op.index;
 }
 
 extern "C" id<MTLTexture> AVPlayerGetTexturePtr(AVPlayerOperater* op)
 {
-	if (!isExistOperater(op)) {
-		return nil;
-	}
-	return [op getOutputTexture];
+    if (!isExistOperater(op)) {
+        return NULL;
+    }
+    return [op getOutputTexture];
 }
 
 extern "C" void AVPlayerSetTexturePtr(AVPlayerOperater* op, id<MTLTexture> texture)
 {
-	if (!isExistOperater(op)) {
-		return;
-	}
-	[op setOutputTexture:texture];
+    if (!isExistOperater(op)) {
+        return;
+    }
+    [op setOutputTexture:texture];
 }
 
 extern "C" AVPlayerOperater* AVPlayerCreate()
 {
-	NSLog(@"AVPlayerPlugin: AVPlayerCreate");
+    NSLog(@"AVPlayerPlugin: AVPlayerCreate");
 
-	if (!initialized) {
-		UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
-		initialized = true;
-	}
-	
-	s_avPlayerOperaterNumber ++;
-	AVPlayerOperater* op = [[AVPlayerOperater alloc] initWithIndex:s_avPlayerOperaterNumber device:s_MetalGraphics->MetalDevice()];
-	NSNumber* num = [NSNumber numberWithUnsignedInteger:s_avPlayerOperaterNumber];
-	[s_avPlayerOperaterMap setDictionary:@{num : op}];
-	return op;
+    if (!initialized) {
+        UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
+        initialized = true;
+    }
+    
+    s_avPlayerOperaterNumber ++;
+    AVPlayerOperater* op = [[AVPlayerOperater alloc] initWithIndex:s_avPlayerOperaterNumber device:s_MetalGraphics->MetalDevice()];
+    NSNumber* num = [NSNumber numberWithUnsignedInteger:s_avPlayerOperaterNumber];
+    s_avPlayerOperaterMap[num] = op;
+    return op;
 }
 
 extern "C" void AVPlayerSetContent(AVPlayerOperater* op, const char* contentPath)
 {
-	NSLog(@"AVPlayerPlugin: AVPlayerSetContent");
-	
-	if (!isExistOperater(op)) {
-		return;
-	}
-	if (contentPath == nil) {
-		NSLog(@"AVPlayerPlugin: contentPath is nil!");
-		return;
-	}
-	NSString* contentString = [NSString stringWithUTF8String:contentPath];
-	[op setPlayerItemWithPath:contentString];
+    NSLog(@"AVPlayerPlugin: AVPlayerSetContent");
+    
+    if (!isExistOperater(op)) {
+        return;
+    }
+    if (contentPath == NULL) {
+        NSLog(@"AVPlayerPlugin: contentPath is NULL!");
+        return;
+    }
+    NSString* contentString = [NSString stringWithUTF8String:contentPath];
+    [op setPlayerItemWithPath:contentString];
 }
 
 extern "C" void AVPlayerPlay(AVPlayerOperater* op)
 {
-	NSLog(@"AVPlayerPlugin: AVPlayerPlay");
+    NSLog(@"AVPlayerPlugin: AVPlayerPlay");
 
-	if (!isExistOperater(op)) {
-		return;
-	}
-	[op playWhenReady];
+    if (!isExistOperater(op)) {
+        return;
+    }
+    [op playWhenReady];
 }
 
 extern "C" void AVPlayerPause(AVPlayerOperater* op)
 {
-	if (!isExistOperater(op)) {
-		return;
-	}
-	[op pauseWhenReady];
+    if (!isExistOperater(op)) {
+        return;
+    }
+    [op pauseWhenReady];
 }
 
 extern "C" void AVPlayerSeek(AVPlayerOperater* op, float seconds)
 {
-	if (!isExistOperater(op)) {
-		return;
-	}
-	[op seekWithSeconds:seconds];
+    if (!isExistOperater(op)) {
+        return;
+    }
+    [op seekWithSeconds:seconds];
 }
 
 extern "C" void AVPlayerSetRate(AVPlayerOperater* op, float rate)
 {
-	if (!isExistOperater(op)) {
-		return;
-	}
-	[op setPlayRate:rate];
+    if (!isExistOperater(op)) {
+        return;
+    }
+    [op setPlayRate:rate];
 }
 
 extern "C" void AVPlayerSetVolume(AVPlayerOperater* op, float volume)
 {
-	if (!isExistOperater(op)) {
-		return;
-	}
-	[op setVolume:volume];
+    if (!isExistOperater(op)) {
+        return;
+    }
+    [op setVolume:volume];
 }
 
 extern "C" void AVPlayerSetLoop(AVPlayerOperater* op, bool loop)
 {
-	if (!isExistOperater(op)) {
-		return;
-	}
-	[op setLoop:loop];
+    if (!isExistOperater(op)) {
+        return;
+    }
+    [op setLoop:loop];
 }
 
 extern "C" void AVPlayerClose(AVPlayerOperater* op)
 {
-	if (!isExistOperater(op)) {
-		return;
-	}
-	[op closeAll];
-	NSNumber* primaryKey = [NSNumber numberWithUnsignedInteger:op.index];
-	[s_avPlayerOperaterMap removeObjectForKey:primaryKey];	
+    if (!isExistOperater(op)) {
+        return;
+    }
+    [op closeAll];
+    NSNumber* primaryKey = [NSNumber numberWithUnsignedInteger:op.index];
+    [s_avPlayerOperaterMap removeObjectForKey:primaryKey];	
 }
 
 extern "C" float AVPlayerGetCurrentPosition(AVPlayerOperater* op)
 {
-	if (!isExistOperater(op)) {
-		return -1.f;
-	}
-	return [op getCurrentSconds];
+    if (!isExistOperater(op)) {
+        return -1.f;
+    }
+    return [op getCurrentSconds];
 }
 
 extern "C" float AVPlayerGetDuration(AVPlayerOperater* op)
 {
-	if (!isExistOperater(op)) {
-		return 0.f;
-	}
-	return [op getDuration];
+    if (!isExistOperater(op)) {
+        return 0.f;
+    }
+    return [op getDuration];
 }
 
 extern "C" bool AVPlayerIsPlaying(AVPlayerOperater* op)
 {
-	if (!isExistOperater(op)) {
-		return 0.f;
-	}
-	return [op isPlaying];
+    if (!isExistOperater(op)) {
+        return 0.f;
+    }
+    return [op isPlaying];
 }
 
 extern "C" void AVPlayerSetOnReady(AVPlayerOperater* op, const char* objectName, const char* methodName)
 {
-	if (!isExistOperater(op)) {
-		return;
-	}
-	if (objectName == nil) {
-		return;
-	}
-	if (methodName == nil) {
-		return;
-	}
-	op.playerCallback.unityObjectName = [NSString stringWithUTF8String:objectName];
-	op.playerCallback.unityMethodNameDidReady = [NSString stringWithUTF8String:methodName];
+    if (!isExistOperater(op)) {
+        return;
+    }
+    if (objectName == NULL) {
+        return;
+    }
+    if (methodName == NULL) {
+        return;
+    }
+    op.playerCallback.unityObjectName = [NSString stringWithUTF8String:objectName];
+    op.playerCallback.unityMethodNameDidReady = [NSString stringWithUTF8String:methodName];
 }
 
 extern "C" void AVPlayerSetOnSeek(AVPlayerOperater* op, const char* objectName, const char* methodName)
 {
-	if (!isExistOperater(op)) {
-		return;
-	}
-	if (objectName == nil) {
-		return;
-	}
-	if (methodName == nil) {
-		return;
-	}
-	op.playerCallback.unityObjectName = [NSString stringWithUTF8String:objectName];
-	op.playerCallback.unityMethodNameDidSeek = [NSString stringWithUTF8String:methodName];
+    if (!isExistOperater(op)) {
+        return;
+    }
+    if (objectName == nil) {
+        return;
+    }
+    if (methodName == nil) {
+        return;
+    }
+    op.playerCallback.unityObjectName = [NSString stringWithUTF8String:objectName];
+    op.playerCallback.unityMethodNameDidSeek = [NSString stringWithUTF8String:methodName];
 }
 
 extern "C" void AVPlayerSetOnEndTime(AVPlayerOperater* op, const char* objectName, const char* methodName)
 {
-	if (!isExistOperater(op)) {
-		return;
-	}
-	if (objectName == nil) {
-		return;
-	}
-	if (methodName == nil) {
-		return;
-	}
-	op.playerCallback.unityObjectName = [NSString stringWithUTF8String:objectName];
-	op.playerCallback.unityMethodNameDidEnd = [NSString stringWithUTF8String:methodName];
+    if (!isExistOperater(op)) {
+        return;
+    }
+    if (objectName == nil) {
+        return;
+    }
+    if (methodName == nil) {
+        return;
+    }
+    op.playerCallback.unityObjectName = [NSString stringWithUTF8String:objectName];
+    op.playerCallback.unityMethodNameDidEnd = [NSString stringWithUTF8String:methodName];
 }
 
 #pragma mark - Render
@@ -265,18 +268,19 @@ extern "C" void AVPlayerSetOnEndTime(AVPlayerOperater* op, const char* objectNam
 // 特定のレンダリングイベントを処理するプラグイン関数
 static void UNITY_INTERFACE_API OnRenderEvent(int eventID)
 {
-	if (s_avPlayerOperaterMap.count == 0) {
-		return;
-	}
-	if (eventID < 0) {
-		return;
-	}
-	NSUInteger index = (NSUInteger)eventID;
-	NSNumber* key = [NSNumber numberWithUnsignedInteger:index];
-	AVPlayerOperater* op = s_avPlayerOperaterMap[key];
-	if (op != nil) {
-		[op updateVideo];
-	}
+    if (s_avPlayerOperaterMap.count == 0) {
+        return;
+    }
+    if (eventID < 0) {
+        return;
+    }
+    
+    NSUInteger index = (NSUInteger)eventID;
+    NSNumber* key = [NSNumber numberWithUnsignedInteger:index];
+    AVPlayerOperater* op = s_avPlayerOperaterMap[key];
+    if (op != nil) {
+        [op updateVideo];
+    }
 }
     
 // プラグイン特有のスクリプトにコールバックを渡すための自由に定義した関数
