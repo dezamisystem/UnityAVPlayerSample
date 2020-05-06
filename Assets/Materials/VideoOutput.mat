@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: CubeVideoOutput
+  m_Name: VideoOutput
   m_Shader: {fileID: 4800000, guid: d969c913cebc248fd8a78ebb262bdad4, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
@@ -60,8 +60,6 @@ Material:
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
-    - _FLIP_X: 0
-    - _FLIP_Y: 0
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1

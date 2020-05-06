@@ -4,48 +4,35 @@ using UnityEngine.EventSystems;
 
 public class SliderEventTrigger : EventTrigger
 {
-    public override void OnPointerEnter(PointerEventData eventData)
-    {
-        Debug.Log("SliderEventTrigger: OnPointerEnter");
-    }
-
-    public override void OnPointerDown(PointerEventData eventData)
-    {
-        Debug.Log("SliderEventTrigger: OnPointerDown");
-    }
+    public Action BeginAction;
+    public Action MovingAction;
+    public Action EndAction;
 
     public override void OnPointerUp(PointerEventData eventData)
     {
         Debug.Log("SliderEventTrigger: OnPointerUp");
-    }
-
-    public override void OnPointerExit(PointerEventData eventData)
-    {
-        Debug.Log("SliderEventTrigger: OnPointerExit");
+        if (EndAction != null)
+        {
+            EndAction();
+        }
     }
 
     public override void OnInitializePotentialDrag(PointerEventData eventData)
     {
         Debug.Log("SliderEventTrigger: OnInitializePotentialDrag");
-    }
-
-    public override void OnBeginDrag(PointerEventData eventData)
-    {
-        Debug.Log("SliderEventTrigger: OnBeginDrag");
+        if (BeginAction != null)
+        {
+            BeginAction();
+        }
     }
 
     public override void OnDrag(PointerEventData eventData)
     {
         Debug.Log("SliderEventTrigger: OnDrag");
+        if (MovingAction != null)
+        {
+            MovingAction();
+        }
     }
 
-    public override void OnEndDrag(PointerEventData eventData)
-    {
-        Debug.Log("SliderEventTrigger: OnEndDrag");
-    }
-
-    public override void OnDrop(PointerEventData eventData)
-    {
-        Debug.Log("SliderEventTrigger: OnDrop");
-    }
 }

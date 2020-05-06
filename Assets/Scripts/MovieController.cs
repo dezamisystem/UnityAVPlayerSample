@@ -20,6 +20,7 @@ public class MovieController : MonoBehaviour
     private IntPtr renderEventFunc;
     private bool isSeekSliderDoing;
     private bool isSeekWaiting;
+    private float videoDuration;
 
     // Start is called before the first frame update
     void Start()
@@ -59,6 +60,7 @@ public class MovieController : MonoBehaviour
 
     private void CallbackReadyPlayer(string message)
     {
+        videoDuration = AVPlayerConnect.AVPlayerGetDuration(avPlayer);
         // Texture settings
         IntPtr texPtr = AVPlayerConnect.AVPlayerGetTexturePtr(avPlayer);
         Texture2D texture = Texture2D.CreateExternalTexture(
@@ -83,9 +85,16 @@ public class MovieController : MonoBehaviour
         if (seekSlider != null)
         {
             seekSlider.interactable = true;
-            seekSlider.maxValue = AVPlayerConnect.AVPlayerGetDuration(avPlayer);
+            seekSlider.maxValue = videoDuration;
             seekSlider.minValue = 0f;
             seekSlider.value = 0f;
+            SliderEventTrigger trigger = seekSlider.GetComponentInChildren<SliderEventTrigger>();
+            if (trigger != null)
+            {
+                trigger.BeginAction = SeekSliderInitializePointerDrag;
+                trigger.MovingAction = SeekSliderDrag;
+                trigger.EndAction = SeekSliderPointerUp;
+            }
         }
         StartCoroutine(OnUpdateText());
         StartCoroutine(OnUpdateSeekSlider());
@@ -192,15 +201,15 @@ public class MovieController : MonoBehaviour
     {
         for(;;)
         {
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForEndOfFrame();
             float current = AVPlayerConnect.AVPlayerGetCurrentPosition(avPlayer);
-            float duration = AVPlayerConnect.AVPlayerGetDuration(avPlayer);
+            float duration = videoDuration;
             if (currentTimeText != null)
             {
                 currentTimeText.text = "["
-                + Mathf.Floor(current)
+                + current
                 + " | "
-                + Mathf.Floor(duration)
+                + duration
                 + "]";
             }
         }
@@ -210,7 +219,7 @@ public class MovieController : MonoBehaviour
     {
         for(;;)
         {
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForEndOfFrame();
             if (seekSlider != null && AVPlayerConnect.AVPlayerIsPlaying(avPlayer))
             {
                 if (!isSeekSliderDoing && !isSeekWaiting)
