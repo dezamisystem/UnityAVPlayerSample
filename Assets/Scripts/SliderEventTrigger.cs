@@ -8,15 +8,10 @@ public class SliderEventTrigger : EventTrigger
     public Action MovingAction;
     public Action EndAction;
 
-    public override void OnPointerUp(PointerEventData eventData)
-    {
-        Debug.Log("SliderEventTrigger: OnPointerUp");
-        if (EndAction != null)
-        {
-            EndAction();
-        }
-    }
-
+    /// <summary>
+    /// ドラッグ開始
+    /// </summary>
+    /// <param name="eventData">イベントデータ</param>
     public override void OnInitializePotentialDrag(PointerEventData eventData)
     {
         Debug.Log("SliderEventTrigger: OnInitializePotentialDrag");
@@ -26,6 +21,10 @@ public class SliderEventTrigger : EventTrigger
         }
     }
 
+    /// <summary>
+    /// ドラッグ中
+    /// </summary>
+    /// <param name="eventData">イベントデータ</param>
     public override void OnDrag(PointerEventData eventData)
     {
         Debug.Log("SliderEventTrigger: OnDrag");
@@ -35,4 +34,16 @@ public class SliderEventTrigger : EventTrigger
         }
     }
 
+    /// <summary>
+    /// ドラッグ解除
+    /// </summary>
+    /// <param name="eventData">イベントデータ</param>
+    public override void OnPointerUp(PointerEventData eventData)
+    {
+        Debug.Log("SliderEventTrigger: OnPointerUp");
+        if (EndAction != null)
+        {
+            EndAction();
+        }
+    }
 }

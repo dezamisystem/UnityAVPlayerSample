@@ -18,14 +18,14 @@ namespace AVPlayer {
             [DllImport ("__Internal")]
             public static extern int AVPlayerGetEventID(IntPtr op);
         #else
-            public static int AVPlayerGetEventID() { return 0; }
+            public static int AVPlayerGetEventID(IntPtr op) { return 0; }
         #endif
 
         #if UNITY_IOS
             [DllImport ("__Internal")]
             public static extern IntPtr AVPlayerGetTexturePtr(IntPtr op);
         #else
-            public static IntPtr AVPlayerGetTexturePtr(IntPtr op) { IntPtr.Zero; }
+            public static IntPtr AVPlayerGetTexturePtr(IntPtr op) { return IntPtr.Zero; }
         #endif
 
         #if UNITY_IOS
@@ -116,7 +116,7 @@ namespace AVPlayer {
             [DllImport ("__Internal")]
             public static extern bool AVPlayerIsPlaying(IntPtr op);
         #else
-            public static bool AVPlayerIsPlaying(IntPtr op) { retrun false; }
+            public static bool AVPlayerIsPlaying(IntPtr op) { return false; }
         #endif
 
         #if UNITY_IOS
