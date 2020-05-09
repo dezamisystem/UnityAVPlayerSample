@@ -1,4 +1,8 @@
-﻿using UnityEngine;
+﻿/*
+ * DialogHandler.cs
+ * Copyright (c) 2020 東亜プリン秘密研究所. All rights reserved.
+ */
+using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;

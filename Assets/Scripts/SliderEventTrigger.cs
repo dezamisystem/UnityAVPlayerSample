@@ -1,12 +1,17 @@
-﻿using System;
+﻿/*
+ * SliderEventTrigger.cs
+ * Copyright (c) 2020 東亜プリン秘密研究所. All rights reserved.
+ */
+using System;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.EventSystems;
 
 public class SliderEventTrigger : EventTrigger
 {
-    public Action BeginAction;
-    public Action MovingAction;
-    public Action EndAction;
+    public UnityAction BeginAction;
+    public UnityAction MovingAction;
+    public UnityAction EndAction;
 
     /// <summary>
     /// ドラッグ開始

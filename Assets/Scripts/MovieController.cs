@@ -1,4 +1,8 @@
-﻿using System;
+﻿/*
+ * MovieController.cs
+ * Copyright (c) 2020 東亜プリン秘密研究所. All rights reserved.
+ */
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,12 +12,12 @@ using AVPlayer;
 
 public class MovieController : MonoBehaviour
 {
-    public RawImage videoImage;
-    public Button prepareButton;
-    public Button playButton;
-    public Slider seekSlider;
-    public Text currentTimeText;
-    public Text debugText;
+    [SerializeField] private RawImage videoImage = null;
+    [SerializeField] private Button prepareButton = null;
+    [SerializeField] private Button playButton = null;
+    [SerializeField] private Slider seekSlider = null;
+    [SerializeField] private Text currentTimeText = null;
+    [SerializeField] private Text debugText = null;
     private const string TEST_CONTENT_PATH = "https://dezamisystem.com/movie/vtuber/index.m3u8";
     private IntPtr avPlayer;
     private int renderEventId;

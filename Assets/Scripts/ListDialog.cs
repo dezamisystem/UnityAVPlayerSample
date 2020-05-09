@@ -1,4 +1,8 @@
-﻿using System;
+﻿/*
+ * ListDialog.cs
+ * Copyright (c) 2020 東亜プリン秘密研究所. All rights reserved.
+ */
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
