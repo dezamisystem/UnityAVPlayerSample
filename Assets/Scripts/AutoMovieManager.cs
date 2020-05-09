@@ -7,7 +7,7 @@ using AVPlayer;
 
 public class AutoMovieManager : MonoBehaviour
 {
-    public GameObject videoObject;
+    [SerializeField] private GameObject videoObject = null;
     private const string TEST_CONTENT_PATH = "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8";
     private IntPtr avPlayer;
     private int renderEventId;

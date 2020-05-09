@@ -94,7 +94,7 @@ public class DialogHandler : MonoBehaviour
             return;
         }
 
-        handler.Button_Yes.onClick.AddListener(()=>{ action(); });
+        handler.Button_Yes.onClick.AddListener(action);
     }
 
     public static void SetNoAction(DialogHandler handler, UnityAction action)
@@ -108,7 +108,7 @@ public class DialogHandler : MonoBehaviour
             return;
         }
 
-        handler.Button_No.onClick.AddListener(()=>{ action(); });
+        handler.Button_No.onClick.AddListener(action);
     }
 
     public static void AddDestroyAction(DialogHandler handler, UnityAction action)
@@ -118,10 +118,7 @@ public class DialogHandler : MonoBehaviour
             return;
         }
 
-        handler.destroyedAction += () =>
-        {
-            action();
-        };
+        handler.destroyedAction += action;
     }
 
     void OnEnable()
