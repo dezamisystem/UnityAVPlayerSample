@@ -1,4 +1,8 @@
-﻿using System.Collections;
+﻿/*
+ * MakeBuilder.cs
+ * Copyright (c) 2020 東亜プリン秘密研究所. All rights reserved.
+ */
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
@@ -7,6 +11,9 @@ using UnityEditor.Build.Reporting;
 
 public class MakeBuilder
 {
+    /// <summary>
+    /// 作成
+    /// </summary>
     public static void Make()
     {
         // 現在の設定を控える
@@ -21,7 +28,7 @@ public class MakeBuilder
         var targetKey = "-build-target";
         var targetValue = GetParameterFrom(key: targetKey);
         Debug.Assert(!string.IsNullOrEmpty(targetValue), $"'{targetKey}'の取得に失敗しましました！");
-        var buildTarget = BuildTarget.Android;
+        var buildTarget = BuildTarget.NoTarget;
         if (targetValue.Equals("android"))
         {
             buildTarget = BuildTarget.Android;
@@ -30,82 +37,18 @@ public class MakeBuilder
         {
             buildTarget = BuildTarget.iOS;
         }
-        var buildOptions = BuildOptions.Development;
+        Debug.Assert(!buildTarget.Equals(BuildTarget.NoTarget), $"'{targetValue}'はサポート外です！");
 
-        // 実行
-        var report = BuildPipeline.BuildPlayer(
-            GetBuildScenePaths(),
-            outputPath,
-            buildTarget,
-            buildOptions);
-
-        // 元に戻す
-        EditorUserBuildSettings.SwitchActiveBuildTarget(prevGroup, prevPlatform);
-
-        // 結果
-        if (report.summary.result == BuildResult.Succeeded)
+        var buildOptions = BuildOptions.ShowBuiltPlayer;
+        var variantKey = "-development";
+        if (IsParameterExist(variantKey))
         {
-            const int kSuccessCode = 0;
-            EditorApplication.Exit(kSuccessCode);
+            buildOptions |= BuildOptions.Development;
         }
-        else
+        if (buildTarget.Equals(BuildTarget.iOS))
         {
-            const int kErrorCode = 1;
-            EditorApplication.Exit(kErrorCode);
+            buildOptions |= (BuildOptions.AcceptExternalModificationsToPlayer | BuildOptions.SymlinkLibraries | BuildOptions.ConnectToHost);
         }
-    }
-
-    public static void Android()
-    {
-        // 現在の設定を控える
-        BuildTarget prevPlatform = EditorUserBuildSettings.activeBuildTarget;
-        BuildTargetGroup prevGroup = EditorUserBuildSettings.selectedBuildTargetGroup;
-
-        // 設定値
-        var fileName = "uitest.apk";
-        var outputPath = $"~/Downloads/{fileName}";
-        var buildTarget = BuildTarget.Android;
-        var buildOptions = BuildOptions.Development;
-
-        // 実行
-        var report = BuildPipeline.BuildPlayer(
-            GetBuildScenePaths(),
-            outputPath,
-            buildTarget,
-            buildOptions);
-
-        // 元に戻す
-        EditorUserBuildSettings.SwitchActiveBuildTarget(prevGroup, prevPlatform);
-
-        // 結果
-        if (report.summary.result == BuildResult.Succeeded)
-        {
-            const int kSuccessCode = 0;
-            EditorApplication.Exit(kSuccessCode);
-        }
-        else
-        {
-            const int kErrorCode = 1;
-            EditorApplication.Exit(kErrorCode);
-        }
-    }
-
-    public static void iOS()
-    {
-        // 現在の設定を控える
-        BuildTarget prevPlatform = EditorUserBuildSettings.activeBuildTarget;
-        BuildTargetGroup prevGroup = EditorUserBuildSettings.selectedBuildTargetGroup;
-
-        // var outputDirKey = "-output-dir";
-        // var outputDir = GetParameterFrom(key: outputDirKey);
-        // 設定値
-        var dirName = "uitestproject";
-        var outputPath = $"~/Downloads/{dirName}";
-        string[] sceneList = {"Assets/Scenes/UITestScene.unity"};
-        var buildTarget = BuildTarget.iOS;
-        var buildOptions = BuildOptions.Development;
-
-        // Debug.Assert(!string.IsNullOrEmpty(outputDir), $"'{outputDirKey}'の取得に失敗しましました！");
 
         // 実行
         var report = BuildPipeline.BuildPlayer(
@@ -142,6 +85,23 @@ public class MakeBuilder
             .Where((arg) => arg.enabled)
             .Select((arg) => arg.path)
             .ToArray();
+    }
+
+    /// <summary>
+    /// 引数の存在を確認
+    /// </summary>
+    /// <param name="key">スイッチキー</param>
+    /// <returns>存在するならtrue</returns>
+    private static bool IsParameterExist(string key)
+    {
+        foreach (var command in System.Environment.GetCommandLineArgs())
+        {
+            if (key.Equals(command))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>
