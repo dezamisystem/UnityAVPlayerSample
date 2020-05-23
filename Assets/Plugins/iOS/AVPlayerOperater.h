@@ -12,6 +12,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class AVPlayerOperater;
 
+typedef void (*VideoSizeCallbackCaller)(AVPlayerOperater* sender, int width, int height, void* methodHandle);
+
 @protocol AVPlayerOperaterDelegate <NSObject>
 @required
 - (void)didReady:(AVPlayerOperater*)op;
@@ -54,7 +56,13 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (BOOL)isPlaying;
 
+- (NSUInteger)getVideoWidth;
+
+- (NSUInteger)getVideoHeight;
+
 - (void)updateVideo;
+
+- (void)setVideoSizeCallbackWithHandle:(void*)handle caller:(VideoSizeCallbackCaller)caller;
 
 @end
 

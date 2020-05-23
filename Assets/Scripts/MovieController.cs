@@ -4,6 +4,7 @@
  */
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -18,13 +19,17 @@ public class MovieController : MonoBehaviour
     [SerializeField] private Slider seekSlider = null;
     [SerializeField] private Text currentTimeText = null;
     [SerializeField] private Text debugText = null;
-    private const string TEST_CONTENT_PATH = "https://dezamisystem.com/movie/vtuber/index.m3u8";
+    // private const string TEST_CONTENT_PATH = "https://dezamisystem.com/movie/vtuber/index.m3u8";
+    private const string TEST_CONTENT_PATH = "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8";
+
     private IntPtr avPlayer;
     private int renderEventId;
     private IntPtr renderEventFunc;
     private bool isSeekSliderDoing;
     private bool isSeekWaiting;
     private float videoDuration;
+    private float videoSizeWidth = 0;
+    private float videoSizeHeight = 0;
 
     // Start is called before the first frame update
     void Start()
@@ -75,13 +80,13 @@ public class MovieController : MonoBehaviour
             false,
             texPtr);
         texture.UpdateExternalTexture(texPtr);
+        videoSizeWidth = AVPlayerConnect.AVPlayerGetVideoWidth(avPlayer);
+        videoSizeHeight = AVPlayerConnect.AVPlayerGetVideoHeight(avPlayer);
         if (videoImage != null)
         {
             videoImage.texture = texture;
             Vector2 scale = new Vector2(1f,-1f);
-            Material material = videoImage.material;
-            material.SetTextureScale("_MainTex", scale);
-            videoImage.material = material;
+            videoImage.material.SetTextureScale("_MainTex", scale);
         }
         StartCoroutine(OnRender());
 
@@ -112,6 +117,11 @@ public class MovieController : MonoBehaviour
             avPlayer,
             transform.root.gameObject.name,
             ((Action<string>)CallbackSeek).Method.Name);
+        VideoSizeEvent videoSizeEvent = new VideoSizeEvent();
+        videoSizeEvent.SetCallback(avPlayer, (sender,width,height )=>
+        {
+            StartCoroutine(OnUpdateVideoSize(width, height));
+        });
 
         // UI settings
         if (prepareButton != null)
@@ -194,10 +204,23 @@ public class MovieController : MonoBehaviour
     {
         for (;;) 
         {
-            yield return new WaitForEndOfFrame();
+            yield return null;
             Assert.IsFalse(renderEventFunc.Equals(IntPtr.Zero),"renderEventFunc is Zero");
             Assert.IsTrue(renderEventId>0, "renderEventId <= 0");
             GL.IssuePluginEvent(renderEventFunc,renderEventId);
+        }
+    }
+
+    IEnumerator OnUpdateVideoSize(float width, float height)
+    {
+        yield return null;
+        if (width != 0 && height != 0)
+        {
+            Vector2 scale = new Vector2(videoSizeWidth/width,-videoSizeHeight/height);
+            if (videoImage != null)
+            {
+                videoImage.material.SetTextureScale("_MainTex", scale);
+            }
         }
     }
 
@@ -205,7 +228,7 @@ public class MovieController : MonoBehaviour
     {
         for(;;)
         {
-            yield return new WaitForEndOfFrame();
+            yield return null;
             float current = AVPlayerConnect.AVPlayerGetCurrentPosition(avPlayer);
             float duration = videoDuration;
             if (currentTimeText != null)
@@ -223,7 +246,7 @@ public class MovieController : MonoBehaviour
     {
         for(;;)
         {
-            yield return new WaitForEndOfFrame();
+            yield return null;
             if (seekSlider != null && AVPlayerConnect.AVPlayerIsPlaying(avPlayer))
             {
                 if (!isSeekSliderDoing && !isSeekWaiting)

@@ -3,6 +3,7 @@
  * Copyright (c) 2020 東亜プリン秘密研究所. All rights reserved.
  */
 using System;
+using System.Collections;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -123,6 +124,20 @@ namespace AVPlayer {
 
         #if UNITY_IOS
             [DllImport ("__Internal")]
+            public static extern int AVPlayerGetVideoWidth(IntPtr op);
+        #else
+            public static int AVPlayerGetVideoWidth(IntPtr op) { return 0; }
+        #endif
+
+        #if UNITY_IOS
+            [DllImport ("__Internal")]
+            public static extern int AVPlayerGetVideoHeight(IntPtr op);
+        #else
+            public static int AVPlayerGetVideoHeight(IntPtr op) { return 0; }
+        #endif
+
+        #if UNITY_IOS
+            [DllImport ("__Internal")]
             public static extern void AVPlayerSetOnReady(IntPtr op, string objectName, string methodName);
         #else
             public static void AVPlayerSetOnReady(IntPtr op, string objectName, string methodName) {}
@@ -141,5 +156,6 @@ namespace AVPlayer {
         #else
             public static void AVPlayerSetOnEndTime(IntPtr op, string objectName, string methodName) {}
         #endif
+
     }
 }

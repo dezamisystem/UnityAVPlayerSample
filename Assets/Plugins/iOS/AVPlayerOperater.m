@@ -13,6 +13,12 @@
     AVPlayer* _avPlayer;
     AVPlayerItemVideoOutput* _videoOutput;
     AVPlayerItem* _avPlayerItem;
+
+    void* _videoSizeCallbackHandle;
+    VideoSizeCallbackCaller _videoSizeCallbackCaller;
+
+    NSUInteger _videoSizeWidth;
+    NSUInteger _videoSizeHeight;
 }
 
 @property (nonnull, nonatomic) MTLDeviceRef metalDevice;
@@ -27,6 +33,10 @@ static void* _ObserveItemStatusContext = (void*)0x1;
 static void* _ObservePresentationSizeContext = (void*)0x2;
 
 @implementation AVPlayerOperater
+
+#pragma mark - Public
+
+#pragma mark Initialize
 
 - (id)init
 {
@@ -52,6 +62,8 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
     }
     return self;
 }
+
+#pragma mark APIs
 
 - (id<MTLTexture>)getOutputTexture
 {
@@ -156,11 +168,31 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
     return _avPlayer.rate != 0 ? true : false;
 }
 
+- (NSUInteger)getVideoWidth
+{
+    return _videoSizeWidth;
+}
+
+- (NSUInteger)getVideoHeight
+{
+    return _videoSizeHeight;
+}
+
+#pragma mark Render
+
 - (void)updateVideo
 {
     @synchronized (self) {
         [self readBuffer];
     }
+}
+
+#pragma mark - Callbacks
+
+- (void)setVideoSizeCallbackWithHandle:(void*)handle caller:(VideoSizeCallbackCaller)caller
+{
+    _videoSizeCallbackHandle = handle;
+    _videoSizeCallbackCaller = caller;
 }
 
 #pragma mark - Observers
@@ -185,6 +217,7 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
         AVPlayerItem* playerItem = _avPlayer.currentItem;
         NSLog(@"AVPlayerOperater: New presentationSize (%f, %f)", playerItem.presentationSize.width, playerItem.presentationSize.height);
         if (_outputTexture == nil) {
+            // Create output texture
             CGSize videoSize = CGSizeMake(playerItem.presentationSize.width, playerItem.presentationSize.height);
             [self createOutputTextureWithSize:videoSize];
             if (_outputTexture != nil) {
@@ -192,6 +225,14 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
                 [self addAVPlayerItemDidPlayToEndTimeNotification];
                 // callback
                 [self.playerCallback onReady];
+            }
+        }
+        if (_outputTexture != nil) {
+            // Video Size Callback
+            _videoSizeWidth = playerItem.presentationSize.width;
+            _videoSizeHeight = playerItem.presentationSize.height;
+            if (_videoSizeCallbackHandle != nil && _videoSizeCallbackCaller != nil) {
+                (_videoSizeCallbackCaller)(self, (int)_videoSizeWidth, (int)_videoSizeHeight, _videoSizeCallbackHandle);
             }
         }
     }

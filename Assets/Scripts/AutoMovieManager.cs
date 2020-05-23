@@ -16,6 +16,8 @@ public class AutoMovieManager : MonoBehaviour
     private IntPtr avPlayer;
     private int renderEventId;
     private IntPtr renderEventFunc;
+    private float videoSizeWidth = 0;
+    private float videoSizeHeight = 0;
 
     // Start is called before the first frame update
     void Start()
@@ -43,16 +45,20 @@ public class AutoMovieManager : MonoBehaviour
             false,
             texPtr);
         texture.UpdateExternalTexture(texPtr);
+        videoSizeWidth = AVPlayerConnect.AVPlayerGetVideoWidth(avPlayer);
+        videoSizeHeight = AVPlayerConnect.AVPlayerGetVideoHeight(avPlayer);
         if (videoObject != null)
         {
             Renderer renderer = videoObject.GetComponent<Renderer>();
             if (renderer != null)
             {
-                Vector2 scale = new Vector2(2f,-2f);
                 Material material = renderer.material;
-                material.SetTextureScale("_MainTex", scale);
-                material.SetTexture("_MainTex", texture);
-                renderer.material = material;
+                if (material != null)
+                {
+                    Vector2 scale = new Vector2(1f,-1f);
+                    material.SetTextureScale("_MainTex", scale);
+                    material.SetTexture("_MainTex", texture);
+                }
             }
         }
         // Render settings
@@ -61,6 +67,13 @@ public class AutoMovieManager : MonoBehaviour
         // Play settings
         AVPlayerConnect.AVPlayerSetLoop(avPlayer, true);
         AVPlayerConnect.AVPlayerPlay(avPlayer);
+
+        // Callbacks
+        var videoSizeEvent = new VideoSizeEvent();
+        videoSizeEvent.SetCallback(avPlayer, (sender,width,height )=>
+        {
+            StartCoroutine(OnUpdateVideoSize(width, height));
+        });
     }
 
     void Update()
@@ -71,10 +84,31 @@ public class AutoMovieManager : MonoBehaviour
     {
         for (;;)
         {
-            yield return new WaitForEndOfFrame();
+            yield return null;
             Assert.IsFalse(renderEventFunc.Equals(IntPtr.Zero),"renderEventFunc is Zero");
             Assert.IsTrue(renderEventId>0, "renderEventId <= 0");
             GL.IssuePluginEvent(renderEventFunc,renderEventId);
+        }
+    }
+
+    IEnumerator OnUpdateVideoSize(float width, float height)
+    {
+        yield return null;
+        if (width != 0 && height != 0)
+        {
+            Vector2 scale = new Vector2(videoSizeWidth/width,-videoSizeHeight/height);
+            if (videoObject != null)
+            {
+                Renderer renderer = videoObject.GetComponent<Renderer>();
+                if (renderer != null)
+                {
+                    Material material = renderer.material;
+                    if (material != null)
+                    {
+                        material.SetTextureScale("_MainTex", scale);
+                    }
+                }
+            }
         }
     }
 

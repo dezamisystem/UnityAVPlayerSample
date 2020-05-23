@@ -218,6 +218,22 @@ extern "C" bool AVPlayerIsPlaying(AVPlayerOperater* op)
     return [op isPlaying];
 }
 
+extern "C" int AVPlayerGetVideoWidth(AVPlayerOperater* op)
+{
+    if (!isExistOperater(op)) {
+        return 0.f;
+    }
+    return (int)[op getVideoWidth];
+}
+
+extern "C" int AVPlayerGetVideoHeight(AVPlayerOperater* op)
+{
+    if (!isExistOperater(op)) {
+        return 0.f;
+    }
+    return (int)[op getVideoHeight];
+}
+
 extern "C" void AVPlayerSetOnReady(AVPlayerOperater* op, const char* objectName, const char* methodName)
 {
     if (!isExistOperater(op)) {
@@ -288,5 +304,16 @@ extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API AVPlay
 {
     return OnRenderEvent;
 }
+
+#pragma mark - Callbacks
+
+extern "C" void AVPlayerCallbackOnVideoSize(AVPlayerOperater* op, void* methodHandle, VideoSizeCallbackCaller caller) 
+{
+    if (!isExistOperater(op)) {
+        return;
+    }
+    [op setVideoSizeCallbackWithHandle:methodHandle caller:caller];
+}
+
 
 // EOF
