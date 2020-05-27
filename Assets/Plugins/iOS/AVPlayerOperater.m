@@ -5,28 +5,27 @@
 
 #import "AVPlayerOperater.h"
 
+NS_ASSUME_NONNULL_BEGIN
 @interface AVPlayerOperater ()
-{	
-    MTLCommandQueueRef _commandQueue;
+{
+    __nullable MTLDeviceRef _metalDevice;
+    __nullable MTLCommandQueueRef _commandQueue;
     CVMetalTextureCacheRef _textureCache;
+    __nullable id<MTLTexture> _inputTexture;
     
-    AVPlayer* _avPlayer;
-    AVPlayerItemVideoOutput* _videoOutput;
-    AVPlayerItem* _avPlayerItem;
+    AVPlayer* _Nonnull _avPlayer;
+    AVPlayerItemVideoOutput* _Nonnull _videoOutput;
+    AVPlayerItem* _Nullable _avPlayerItem;
 
-    void* _videoSizeCallbackHandle;
-    VideoSizeCallbackCaller _videoSizeCallbackCaller;
+    void* _Nullable _videoSizeCallbackHandle;
+    __nullable VideoSizeCallbackCaller _videoSizeCallbackCaller;
 
     NSUInteger _videoSizeWidth;
     NSUInteger _videoSizeHeight;
 }
 
-@property (nonnull, nonatomic) MTLDeviceRef metalDevice;
-@property (strong, nonatomic) id<MTLTexture> inputTexture;
-@property (strong, nonatomic) id<MTLTexture> outputTexture;
-@property (assign, nonatomic) BOOL isLoopPlay;
-
 @end
+NS_ASSUME_NONNULL_END
 
 static NSKeyValueObservingOptions _ObservingOptions = NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew;
 static void* _ObserveItemStatusContext = (void*)0x1;
@@ -40,6 +39,7 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
 
 - (id)init
 {
+    NSAssert(NO, @"AVPlayerOperater init must never be called!");
     return nil;
 }
 
@@ -50,8 +50,10 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
         _avPlayer = [[AVPlayer alloc] init];
         // Metal
         _metalDevice = device;
-        _commandQueue = [device newCommandQueue];
-        CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &_textureCache);
+        if (device != nil) {
+            _commandQueue = [device newCommandQueue];
+            CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &_textureCache);
+        }
         // Video
         NSDictionary<NSString*,id>* attributes = @{
             (NSString*)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_32BGRA)
@@ -64,16 +66,6 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
 }
 
 #pragma mark APIs
-
-- (id<MTLTexture>)getOutputTexture
-{
-    return _outputTexture;
-}
-
-- (void)setOutputTexture:(id<MTLTexture>)texture
-{
-    self.outputTexture = texture;
-}
 
 - (void)setPlayerItemWithPath:(NSString*)contentPath
 {
@@ -130,11 +122,6 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
 - (void)setVolume:(float)volume
 {
     _avPlayer.volume = volume;
-}
-
-- (void)setLoop:(BOOL)loop
-{
-    _isLoopPlay = loop;
 }
 
 - (void)closeAll
@@ -318,16 +305,20 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
 
 - (void)createOutputTextureWithSize:(CGSize)videoSize
 {
+    if (_metalDevice == nil) {
+        return;
+    }
     if (videoSize.width == 0) {
         return;
     }
     if (videoSize.height == 0) {
         return;
     }
-    MTLTextureDescriptor* descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
-                                                                                          width:videoSize.width
-                                                                                         height:videoSize.height
-                                                                                      mipmapped:NO];
+    MTLTextureDescriptor* descriptor =
+    [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+                                                       width:videoSize.width
+                                                      height:videoSize.height
+                                                   mipmapped:NO];
     _outputTexture = [_metalDevice newTextureWithDescriptor:descriptor];
 }
 
@@ -373,6 +364,9 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
 
 - (void)copyTextureWithWidth:(NSUInteger)width height:(NSUInteger)height
 {
+    if (_commandQueue == nil) {
+        return;
+    }
     if (_inputTexture == nil) {
         return;
     }

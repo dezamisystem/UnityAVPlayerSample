@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using UnityEngine.Assertions;
 using AVPlayer;
 
@@ -256,5 +257,15 @@ public class MovieController : MonoBehaviour
                 }
             }
         }
+    }
+
+    public void MoveTestScene()
+    {
+        SceneManager.LoadScene("UITestScene");
+    }
+    
+    void OnDestroy()
+    {
+        AVPlayerConnect.AVPlayerClose(avPlayer);
     }
 }

@@ -181,7 +181,7 @@ extern "C" void AVPlayerSetLoop(AVPlayerOperater* op, bool loop)
     if (!isExistOperater(op)) {
         return;
     }
-    [op setLoop:loop];
+    [op setIsLoopPlay:loop];
 }
 
 extern "C" void AVPlayerClose(AVPlayerOperater* op)

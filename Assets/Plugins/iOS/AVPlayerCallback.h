@@ -9,13 +9,13 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface AVPlayerCallback : NSObject
 
-@property (strong, nonatomic) NSString* unityObjectName;
+@property (nonatomic, copy) NSString* unityObjectName;
 
-@property (strong, nonatomic) NSString* unityMethodNameDidReady;
+@property (nonatomic, copy) NSString* unityMethodNameDidReady;
 
-@property (strong, nonatomic) NSString *unityMethodNameDidSeek;
+@property (nonatomic, copy) NSString *unityMethodNameDidSeek;
 
-@property (strong, nonatomic) NSString *unityMethodNameDidEnd;
+@property (nonatomic, copy) NSString *unityMethodNameDidEnd;
 
 -(void)onReady;
 

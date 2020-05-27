@@ -14,19 +14,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 typedef void (*VideoSizeCallbackCaller)(AVPlayerOperater* sender, int width, int height, void* methodHandle);
 
-@protocol AVPlayerOperaterDelegate <NSObject>
-@required
-- (void)didReady:(AVPlayerOperater*)op;
-- (void)didSeek:(AVPlayerOperater*)op;
-@end
-
 @interface AVPlayerOperater : NSObject
 
-@property (assign, nonatomic) NSUInteger index;
+@property (nonatomic) NSUInteger index;
 
-@property (strong, nonatomic) id<AVPlayerOperaterDelegate> delegate;
+@property (nonatomic, strong, getter=getOutputTexture, setter=setOutputTexture:) id<MTLTexture> outputTexture;
 
-@property (strong, nonatomic) AVPlayerCallback* playerCallback;
+@property (nonatomic) BOOL isLoopPlay;
+
+//@property (nonatomic, weak) id<AVPlayerOperaterDelegate> delegate;
+
+@property (nonatomic, strong) AVPlayerCallback* playerCallback;
 
 - (id)initWithIndex:(NSUInteger)index device:(MTLDeviceRef)device;
 
@@ -45,8 +43,6 @@ typedef void (*VideoSizeCallbackCaller)(AVPlayerOperater* sender, int width, int
 - (void)setPlayRate:(float)rate;
 
 - (void)setVolume:(float)volume;
-
-- (void)setLoop:(BOOL)loop;
 
 - (void)closeAll;
 
