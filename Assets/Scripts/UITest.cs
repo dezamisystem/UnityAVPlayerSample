@@ -7,10 +7,41 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class UITest : MonoBehaviour
 {
+    [SerializeField] private Slider testSlider = null;
     private ListDialog listDialog;
+    private float movedValue;
+    private float prevValue;
+
+    void Start()
+    {
+        if (testSlider != null)
+        {
+            SliderEventTrigger trigger = testSlider.GetComponentInChildren<SliderEventTrigger>();
+            if (trigger != null)
+            {
+                trigger.BeginAction = ()=>
+                {
+                    movedValue = 0;
+                    prevValue = testSlider.value;
+                };
+                trigger.MovingAction = ()=>
+                {
+                    var value = testSlider.value;
+                    movedValue += (value - prevValue);
+                    if (Mathf.Abs(movedValue) >= 5)
+                    {
+                        movedValue = 0;
+                        Debug.Log("!!!!!!!!Move Reset!!!!!!!!");
+                    }
+                    prevValue = value;
+                };
+            }
+        }
+    }
 
     public void ShowTestDialog()
     {

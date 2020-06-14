@@ -22,14 +22,17 @@ NS_ASSUME_NONNULL_BEGIN
 
     NSUInteger _videoSizeWidth;
     NSUInteger _videoSizeHeight;
+    
+    BOOL _isObserverItemStatusContextActive;
+    BOOL _isObserverPresentationSizeContextActive;
 }
 
 @end
 NS_ASSUME_NONNULL_END
 
-static NSKeyValueObservingOptions _ObservingOptions = NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew;
-static void* _ObserveItemStatusContext = (void*)0x1;
-static void* _ObservePresentationSizeContext = (void*)0x2;
+static NSKeyValueObservingOptions s_ObservingOptions = NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew;
+static void* s_ObserveItemStatusContext = (void*)0x1;
+static void* s_ObservePresentationSizeContext = (void*)0x2;
 
 @implementation AVPlayerOperater
 
@@ -191,7 +194,7 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
 {
     NSLog(@"AVPlayerOperater: observeValueForKeyPath = %@", keyPath);
 
-    if (context == _ObserveItemStatusContext) {
+    if (context == s_ObserveItemStatusContext) {
         AVPlayerStatus status = [[change objectForKey:NSKeyValueChangeNewKey] integerValue];
         if (status == AVPlayerItemStatusReadyToPlay) {
             [self removeAVPlayerItemStatusObserver];
@@ -200,13 +203,15 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
             NSLog(@"AVPlayerOperater: status == AVPlayerItemStatusReadyToPlay");
         }
     }
-    else if (context == _ObservePresentationSizeContext) {
+    else if (context == s_ObservePresentationSizeContext) {
         AVPlayerItem* playerItem = _avPlayer.currentItem;
         NSLog(@"AVPlayerOperater: New presentationSize (%f, %f)", playerItem.presentationSize.width, playerItem.presentationSize.height);
         if (_outputTexture == nil) {
             // Create output texture
-            CGSize videoSize = CGSizeMake(playerItem.presentationSize.width, playerItem.presentationSize.height);
-            [self createOutputTextureWithSize:videoSize];
+            _videoSizeWidth = playerItem.presentationSize.width;
+            _videoSizeHeight = playerItem.presentationSize.height;
+           CGSize videoSize = CGSizeMake(playerItem.presentationSize.width, playerItem.presentationSize.height);
+           [self createOutputTextureWithSize:videoSize];
             if (_outputTexture != nil) {
                 // Notification
                 [self addAVPlayerItemDidPlayToEndTimeNotification];
@@ -216,10 +221,10 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
         }
         if (_outputTexture != nil) {
             // Video Size Callback
-            _videoSizeWidth = playerItem.presentationSize.width;
-            _videoSizeHeight = playerItem.presentationSize.height;
+            NSUInteger width = playerItem.presentationSize.width;
+            NSUInteger height = playerItem.presentationSize.height;
             if (_videoSizeCallbackHandle != nil && _videoSizeCallbackCaller != nil) {
-                (_videoSizeCallbackCaller)(self, (int)_videoSizeWidth, (int)_videoSizeHeight, _videoSizeCallbackHandle);
+                (_videoSizeCallbackCaller)(self, (int)width, (int)height, _videoSizeCallbackHandle);
             }
         }
     }
@@ -228,36 +233,56 @@ static void* _ObservePresentationSizeContext = (void*)0x2;
     }
 }
 
+#define OBSERVER_KEY_PATH_STATUS @"status"
+
 - (void)addAVPlayerItemStatusObserver
 {
+    if (_isObserverItemStatusContextActive) {
+        return;
+    }
     if (_avPlayerItem == nil) {
         return;
     }
     [_avPlayerItem addObserver:self
-                    forKeyPath:@"status"
-                       options:_ObservingOptions
-                       context:_ObserveItemStatusContext];
+                    forKeyPath:OBSERVER_KEY_PATH_STATUS
+                       options:s_ObservingOptions
+                       context:s_ObserveItemStatusContext];
+    _isObserverItemStatusContextActive = YES;
 }
 
 - (void)removeAVPlayerItemStatusObserver
 {
+    if (!_isObserverItemStatusContextActive) {
+        return;
+    }
     if (_avPlayerItem == nil) {
         return;
     }
-    [_avPlayerItem removeObserver:self forKeyPath:@"status"];
+    [_avPlayerItem removeObserver:self forKeyPath:OBSERVER_KEY_PATH_STATUS];
+    _isObserverItemStatusContextActive = NO;
 }
+
+#define OBSERVER_KEY_PATH_PRESENTATION_SIZE @"currentItem.presentationSize"
 
 - (void)addAVPlayerCurrentItemPresentationSizeObserver
 {
+    if (_isObserverPresentationSizeContextActive) {
+        return;
+    }
     [_avPlayer addObserver:self
-                forKeyPath:@"currentItem.presentationSize"
-                   options:_ObservingOptions
-                   context:_ObservePresentationSizeContext];
+                forKeyPath:OBSERVER_KEY_PATH_PRESENTATION_SIZE
+                   options:s_ObservingOptions
+                   context:s_ObservePresentationSizeContext];
+    _isObserverPresentationSizeContextActive = YES;
 }
 
 - (void)removeAVPlayerCurrentItemPresentationSizeObserver
 {
-    [_avPlayer removeObserver:self forKeyPath:@"currentItem.presentationSize"];
+    if (!_isObserverPresentationSizeContextActive) {
+        return;
+    }
+    [_avPlayer removeObserver:self forKeyPath:OBSERVER_KEY_PATH_PRESENTATION_SIZE];
+    _isObserverPresentationSizeContextActive = NO;
 }
 
 #pragma mark - Notifications

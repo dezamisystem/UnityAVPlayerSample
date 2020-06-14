@@ -16,8 +16,6 @@ public class AutoMovieManager : MonoBehaviour
     private IntPtr avPlayer;
     private int renderEventId;
     private IntPtr renderEventFunc;
-    private float videoSizeWidth = 0;
-    private float videoSizeHeight = 0;
 
     // Start is called before the first frame update
     void Start()
@@ -45,19 +43,18 @@ public class AutoMovieManager : MonoBehaviour
             false,
             texPtr);
         texture.UpdateExternalTexture(texPtr);
-        videoSizeWidth = AVPlayerConnect.AVPlayerGetVideoWidth(avPlayer);
-        videoSizeHeight = AVPlayerConnect.AVPlayerGetVideoHeight(avPlayer);
         if (videoObject != null)
         {
             Renderer renderer = videoObject.GetComponent<Renderer>();
             if (renderer != null)
             {
-                Material material = renderer.material;
+                Material material = renderer.materials[0];
                 if (material != null)
                 {
-                    Vector2 scale = new Vector2(1f,-1f);
-                    material.SetTextureScale("_MainTex", scale);
                     material.SetTexture("_MainTex", texture);
+                    float width = AVPlayerConnect.AVPlayerGetVideoWidth(avPlayer);
+                    float height = AVPlayerConnect.AVPlayerGetVideoHeight(avPlayer);
+                    StartCoroutine(OnUpdateVideoSize(width,height));
                 }
             }
         }
@@ -84,7 +81,7 @@ public class AutoMovieManager : MonoBehaviour
     {
         for (;;)
         {
-            yield return null;
+            yield return new WaitForEndOfFrame();
             Assert.IsFalse(renderEventFunc.Equals(IntPtr.Zero),"renderEventFunc is Zero");
             Assert.IsTrue(renderEventId>0, "renderEventId <= 0");
             GL.IssuePluginEvent(renderEventFunc,renderEventId);
@@ -94,15 +91,19 @@ public class AutoMovieManager : MonoBehaviour
     IEnumerator OnUpdateVideoSize(float width, float height)
     {
         yield return null;
-        if (width != 0 && height != 0)
+        var videoSizeWidth = AVPlayerConnect.AVPlayerGetVideoWidth(avPlayer);
+        var videoSizeHeight = AVPlayerConnect.AVPlayerGetVideoHeight(avPlayer);
+        if (videoSizeWidth != 0 && videoSizeHeight != 0)
         {
-            Vector2 scale = new Vector2(videoSizeWidth/width,-videoSizeHeight/height);
+            var w = width / videoSizeWidth;
+            var h = -(height / videoSizeHeight);
+            var scale = new Vector2(w,h);
             if (videoObject != null)
             {
-                Renderer renderer = videoObject.GetComponent<Renderer>();
+                var renderer = videoObject.GetComponent<Renderer>();
                 if (renderer != null)
                 {
-                    Material material = renderer.material;
+                    var material = renderer.materials[0];
                     if (material != null)
                     {
                         material.SetTextureScale("_MainTex", scale);

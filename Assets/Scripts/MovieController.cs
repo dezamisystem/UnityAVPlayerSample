@@ -29,8 +29,9 @@ public class MovieController : MonoBehaviour
     private bool isSeekSliderDoing;
     private bool isSeekWaiting;
     private float videoDuration;
-    private float videoSizeWidth = 0;
-    private float videoSizeHeight = 0;
+    private float movedSeekValue = 0;
+    private float prevSeekValue = 0;
+    private float enableSeekRange = 10;
 
     // Start is called before the first frame update
     void Start()
@@ -81,17 +82,19 @@ public class MovieController : MonoBehaviour
             false,
             texPtr);
         texture.UpdateExternalTexture(texPtr);
-        videoSizeWidth = AVPlayerConnect.AVPlayerGetVideoWidth(avPlayer);
-        videoSizeHeight = AVPlayerConnect.AVPlayerGetVideoHeight(avPlayer);
         if (videoImage != null)
         {
             videoImage.texture = texture;
-            Vector2 scale = new Vector2(1f,-1f);
-            videoImage.material.SetTextureScale("_MainTex", scale);
+            float width = AVPlayerConnect.AVPlayerGetVideoWidth(avPlayer);
+            float height = AVPlayerConnect.AVPlayerGetVideoHeight(avPlayer);
+            StartCoroutine(OnUpdateVideoSize(width, height));
+            // Vector2 scale = new Vector2(1f,-1f);
+            // videoImage.material.SetTextureScale("_MainTex", scale);
         }
         StartCoroutine(OnRender());
 
         // Seek settings
+        enableSeekRange = AVPlayerConnect.AVPlayerGetDuration(avPlayer) / 100;
         if (seekSlider != null)
         {
             seekSlider.interactable = true;
@@ -163,6 +166,10 @@ public class MovieController : MonoBehaviour
             AVPlayerConnect.AVPlayerSeek(avPlayer, current);
             isSeekWaiting = true;
             seekSlider.value = current;
+            if (debugText != null)
+            {
+                debugText.text = "Seek: " + current;
+            }
         }
     }
 
@@ -174,26 +181,34 @@ public class MovieController : MonoBehaviour
     public void SeekSliderInitializePointerDrag()
     {
         isSeekSliderDoing = true;
-        OnSeek();
-        if (debugText != null)
+        movedSeekValue = 0;
+        if (seekSlider != null)
         {
-            debugText.text = "SeekSliderInitializePointerDrag";
+            prevSeekValue = seekSlider.value;
         }
+        OnSeek();
     }
 
     public void SeekSliderDrag()
     {
-        OnSeek();
+        // OnSeek();
+        if (seekSlider != null && !isSeekWaiting)
+        {
+            var value = seekSlider.value;
+            movedSeekValue += (value - prevSeekValue);
+            if (Mathf.Abs(movedSeekValue) >= enableSeekRange)
+            {
+                movedSeekValue = 0;
+                OnSeek();
+            }
+            prevSeekValue = value;
+        }
     }
 
     public void SeekSliderPointerUp()
     {
         OnSeek();
         isSeekSliderDoing = false;
-        if (debugText != null)
-        {
-            debugText.text = "SeekSliderPointerUp";
-        }
     }
 
     // Update is called once per frame
@@ -205,7 +220,7 @@ public class MovieController : MonoBehaviour
     {
         for (;;) 
         {
-            yield return null;
+            yield return new WaitForEndOfFrame();
             Assert.IsFalse(renderEventFunc.Equals(IntPtr.Zero),"renderEventFunc is Zero");
             Assert.IsTrue(renderEventId>0, "renderEventId <= 0");
             GL.IssuePluginEvent(renderEventFunc,renderEventId);
@@ -215,13 +230,20 @@ public class MovieController : MonoBehaviour
     IEnumerator OnUpdateVideoSize(float width, float height)
     {
         yield return null;
-        if (width != 0 && height != 0)
+        float videoSizeWidth = AVPlayerConnect.AVPlayerGetVideoWidth(avPlayer);
+        float videoSizeHeight = AVPlayerConnect.AVPlayerGetVideoHeight(avPlayer);
+        if (videoSizeWidth != 0 && videoSizeHeight != 0)
         {
-            Vector2 scale = new Vector2(videoSizeWidth/width,-videoSizeHeight/height);
             if (videoImage != null)
             {
-                videoImage.material.SetTextureScale("_MainTex", scale);
+                var w = width / videoSizeWidth;
+                var h = -(height / videoSizeHeight);
+                videoImage.uvRect = new Rect(0, 0, w, h);
             }
+        }
+        if (debugText != null)
+        {
+            debugText.text = "SIZE: " + width + "," + height + " / ORIGIN(" + videoSizeWidth + "," + videoSizeHeight + ")";
         }
     }
 
@@ -229,7 +251,7 @@ public class MovieController : MonoBehaviour
     {
         for(;;)
         {
-            yield return null;
+            yield return new WaitForEndOfFrame();
             float current = AVPlayerConnect.AVPlayerGetCurrentPosition(avPlayer);
             float duration = videoDuration;
             if (currentTimeText != null)
@@ -247,7 +269,7 @@ public class MovieController : MonoBehaviour
     {
         for(;;)
         {
-            yield return null;
+            yield return new WaitForEndOfFrame();
             if (seekSlider != null && AVPlayerConnect.AVPlayerIsPlaying(avPlayer))
             {
                 if (!isSeekSliderDoing && !isSeekWaiting)
@@ -261,11 +283,9 @@ public class MovieController : MonoBehaviour
 
     public void MoveTestScene()
     {
+        AVPlayerConnect.AVPlayerClose(avPlayer);
+        avPlayer = IntPtr.Zero;
         SceneManager.LoadScene("UITestScene");
     }
     
-    void OnDestroy()
-    {
-        AVPlayerConnect.AVPlayerClose(avPlayer);
-    }
 }

@@ -1,11 +1,13 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
+#include <map>
+
 #include "IUnityInterface.h"
 #include "IUnityGraphics.h"
 #include "IUnityGraphicsMetal.h"
 #include "AVPlayerOperater.h"
-    
+
 static IUnityInterfaces* s_UnityInterfaces = NULL;
 static IUnityGraphics* s_Graphics = NULL;
 static IUnityGraphicsMetal* s_MetalGraphics = NULL;
@@ -53,22 +55,21 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
 #pragma mark - Wrapper
 
 // Wrapper members
-static NSMutableDictionary<NSNumber*,AVPlayerOperater*>* s_avPlayerOperaterMap = [NSMutableDictionary dictionary];
-static NSUInteger s_avPlayerOperaterNumber = 0;
+static std::map<int, AVPlayerOperater*> s_avPlayerOperaterMap;
+static int s_avPlayerOperaterNumber = 0;
 
 static bool isExistOperater(AVPlayerOperater* op)
 {
     if (op == NULL) {
         return false;
     }
-    NSArray<AVPlayerOperater*>* list = [s_avPlayerOperaterMap allValues];
-    if ([list containsObject:op]) {
-        return true;
+    for (auto keyValue : s_avPlayerOperaterMap) {
+        if (keyValue.second == op) {
+            return true;
+        }
     }
     return false;
 }
-
-// Wrapper methods
 
 // Attach the functions to the callback of plugin loaded event.
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API AVPlayerAttachPlugin()
@@ -114,8 +115,7 @@ extern "C" AVPlayerOperater* AVPlayerCreate()
     
     s_avPlayerOperaterNumber ++;
     AVPlayerOperater* op = [[AVPlayerOperater alloc] initWithIndex:s_avPlayerOperaterNumber device:s_MetalGraphics->MetalDevice()];
-    NSNumber* num = [NSNumber numberWithUnsignedInteger:s_avPlayerOperaterNumber];
-    s_avPlayerOperaterMap[num] = op;
+    s_avPlayerOperaterMap[s_avPlayerOperaterNumber] = op;
     return op;
 }
 
@@ -190,8 +190,11 @@ extern "C" void AVPlayerClose(AVPlayerOperater* op)
         return;
     }
     [op closeAll];
-    NSNumber* primaryKey = [NSNumber numberWithUnsignedInteger:op.index];
-    [s_avPlayerOperaterMap removeObjectForKey:primaryKey];	
+    for (auto keyValue : s_avPlayerOperaterMap) {
+        if (keyValue.second == op) {
+            s_avPlayerOperaterMap[keyValue.first] = NULL;
+        }
+    }
 }
 
 extern "C" float AVPlayerGetCurrentPosition(AVPlayerOperater* op)
@@ -254,10 +257,10 @@ extern "C" void AVPlayerSetOnSeek(AVPlayerOperater* op, const char* objectName, 
     if (!isExistOperater(op)) {
         return;
     }
-    if (objectName == nil) {
+    if (objectName == NULL) {
         return;
     }
-    if (methodName == nil) {
+    if (methodName == NULL) {
         return;
     }
     op.playerCallback.unityObjectName = [NSString stringWithUTF8String:objectName];
@@ -269,10 +272,10 @@ extern "C" void AVPlayerSetOnEndTime(AVPlayerOperater* op, const char* objectNam
     if (!isExistOperater(op)) {
         return;
     }
-    if (objectName == nil) {
+    if (objectName == NULL) {
         return;
     }
-    if (methodName == nil) {
+    if (methodName == NULL) {
         return;
     }
     op.playerCallback.unityObjectName = [NSString stringWithUTF8String:objectName];
@@ -284,17 +287,11 @@ extern "C" void AVPlayerSetOnEndTime(AVPlayerOperater* op, const char* objectNam
 // 特定のレンダリングイベントを処理するプラグイン関数
 static void UNITY_INTERFACE_API OnRenderEvent(int eventID)
 {
-    if (s_avPlayerOperaterMap.count == 0) {
-        return;
-    }
     if (eventID < 0) {
         return;
     }
-    
-    NSUInteger index = (NSUInteger)eventID;
-    NSNumber* key = [NSNumber numberWithUnsignedInteger:index];
-    AVPlayerOperater* op = s_avPlayerOperaterMap[key];
-    if (op != nil) {
+    AVPlayerOperater* op = s_avPlayerOperaterMap[eventID];
+    if (op != NULL) {
         [op updateVideo];
     }
 }

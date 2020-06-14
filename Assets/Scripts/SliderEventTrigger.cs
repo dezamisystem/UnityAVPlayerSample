@@ -13,6 +13,8 @@ public class SliderEventTrigger : EventTrigger
     public UnityAction MovingAction;
     public UnityAction EndAction;
 
+    private bool isMoved = false;
+
     /// <summary>
     /// ドラッグ開始
     /// </summary>
@@ -24,6 +26,7 @@ public class SliderEventTrigger : EventTrigger
         {
             BeginAction();
         }
+        isMoved = false;
     }
 
     /// <summary>
@@ -32,7 +35,11 @@ public class SliderEventTrigger : EventTrigger
     /// <param name="eventData">イベントデータ</param>
     public override void OnDrag(PointerEventData eventData)
     {
-        Debug.Log("SliderEventTrigger: OnDrag");
+        if (!isMoved)
+        {
+            Debug.Log("SliderEventTrigger: OnDrag");
+            isMoved = true;
+        }
         if (MovingAction != null)
         {
             MovingAction();
@@ -50,5 +57,6 @@ public class SliderEventTrigger : EventTrigger
         {
             EndAction();
         }
+        isMoved = false;
     }
 }
