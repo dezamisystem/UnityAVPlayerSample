@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -20,8 +21,16 @@ public class MovieController : MonoBehaviour
     [SerializeField] private Slider seekSlider = null;
     [SerializeField] private Text currentTimeText = null;
     [SerializeField] private Text debugText = null;
+    [SerializeField] private Slider speedSlider = null;
+
+    [SerializeField] private Slider rectWidthSlider = null;
+    [SerializeField] private Slider rectHeightSlider = null;
+
     // private const string TEST_CONTENT_PATH = "https://dezamisystem.com/movie/vtuber/index.m3u8";
     private const string TEST_CONTENT_PATH = "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8";
+
+    private const int s_VideoDefaultWidth = 3840;
+    private const int s_VideoDefaultHeight = 2160;
 
     private IntPtr avPlayer;
     private int renderEventId;
@@ -32,10 +41,13 @@ public class MovieController : MonoBehaviour
     private float movedSeekValue = 0;
     private float prevSeekValue = 0;
     private float enableSeekRange = 10;
+    private SynchronizationContext currentContext;
 
     // Start is called before the first frame update
     void Start()
     {
+        currentContext = SynchronizationContext.Current;
+
         avPlayer = IntPtr.Zero;
         isSeekSliderDoing = false;
         isSeekWaiting = false;
@@ -87,9 +99,7 @@ public class MovieController : MonoBehaviour
             videoImage.texture = texture;
             float width = AVPlayerConnect.AVPlayerGetVideoWidth(avPlayer);
             float height = AVPlayerConnect.AVPlayerGetVideoHeight(avPlayer);
-            StartCoroutine(OnUpdateVideoSize(width, height));
-            // Vector2 scale = new Vector2(1f,-1f);
-            // videoImage.material.SetTextureScale("_MainTex", scale);
+            UpdateVideoImageSize(width, height);
         }
         StartCoroutine(OnRender());
 
@@ -109,22 +119,32 @@ public class MovieController : MonoBehaviour
                 trigger.EndAction = SeekSliderPointerUp;
             }
         }
-        StartCoroutine(OnUpdateText());
+        StartCoroutine(OnUpdatePositionText());
         StartCoroutine(OnUpdateSeekSlider());
-
-        // Callback settings
-        AVPlayerConnect.AVPlayerSetOnEndTime(
-            avPlayer,
-            transform.root.gameObject.name,
-            ((Action<string>)CallbackEndTime).Method.Name);
         AVPlayerConnect.AVPlayerSetOnSeek(
             avPlayer,
             transform.root.gameObject.name,
             ((Action<string>)CallbackSeek).Method.Name);
-        VideoSizeEvent videoSizeEvent = new VideoSizeEvent();
-        videoSizeEvent.SetCallback(avPlayer, (sender,width,height )=>
+
+        // Speed Settings
+        if (speedSlider != null)
         {
-            StartCoroutine(OnUpdateVideoSize(width, height));
+            speedSlider.onValueChanged.AddListener((value)=>
+            {
+                // speed
+                AVPlayerConnect.AVPlayerSetRate(avPlayer, value);
+            });
+        }
+
+        // Other Callback settings
+        AVPlayerConnect.AVPlayerSetOnEndTime(
+            avPlayer,
+            transform.root.gameObject.name,
+            ((Action<string>)CallbackEndTime).Method.Name);
+        VideoSizeEvent videoSizeEvent = new VideoSizeEvent();
+        videoSizeEvent.SetCallback(avPlayer, (sender,width,height)=>
+        {
+            UpdateVideoImageSize(width, height);
         });
 
         // UI settings
@@ -135,6 +155,34 @@ public class MovieController : MonoBehaviour
         if (playButton != null)
         {
             playButton.interactable = true;
+        }
+
+        // Test Settings
+        if (rectWidthSlider != null)
+        {
+            rectWidthSlider.onValueChanged.AddListener((value)=>
+            {
+                var rectU = value;
+                var rectV = -1f;
+                if (rectHeightSlider != null)
+                {
+                    rectV = rectHeightSlider.value;
+                }
+                UpdateVideoImageRect(rectU,rectV);
+            });
+        }
+        if (rectHeightSlider != null)
+        {
+            rectHeightSlider.onValueChanged.AddListener((value)=>
+            {
+                var rectU = 1f;
+                var rectV = value;
+                if (rectWidthSlider != null)
+                {
+                    rectU = rectWidthSlider.value;
+                }
+                UpdateVideoImageRect(rectU,rectV);
+            });
         }
     }
 
@@ -211,11 +259,6 @@ public class MovieController : MonoBehaviour
         isSeekSliderDoing = false;
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-    }
-
     IEnumerator OnRender()
     {
         for (;;) 
@@ -227,33 +270,36 @@ public class MovieController : MonoBehaviour
         }
     }
 
-    IEnumerator OnUpdateVideoSize(float width, float height)
+    public void UpdateVideoImageSize(float width, float height)
     {
-        yield return null;
-        float videoSizeWidth = AVPlayerConnect.AVPlayerGetVideoWidth(avPlayer);
-        float videoSizeHeight = AVPlayerConnect.AVPlayerGetVideoHeight(avPlayer);
-        if (videoSizeWidth != 0 && videoSizeHeight != 0)
+        var u = width / s_VideoDefaultWidth;
+        var v = height / s_VideoDefaultHeight;
+        UpdateVideoImageRect(u,v);
+    }
+
+    public void UpdateVideoImageRect(float u, float v)
+    {
+        var w = u;
+        var h = -v;
+        var y = 1f - h;
+        if (videoImage != null)
         {
-            if (videoImage != null)
-            {
-                var w = width / videoSizeWidth;
-                var h = -(height / videoSizeHeight);
-                videoImage.uvRect = new Rect(0, 0, w, h);
-            }
+            videoImage.uvRect = new Rect(0, y, w, h);
         }
         if (debugText != null)
         {
-            debugText.text = "SIZE: " + width + "," + height + " / ORIGIN(" + videoSizeWidth + "," + videoSizeHeight + ")";
+            var text = "Y: " + y + ",U: " + w + ", V: " + h;
+            debugText.text = text;
         }
     }
 
-    IEnumerator OnUpdateText()
+    IEnumerator OnUpdatePositionText()
     {
         for(;;)
         {
             yield return new WaitForEndOfFrame();
-            float current = AVPlayerConnect.AVPlayerGetCurrentPosition(avPlayer);
-            float duration = videoDuration;
+            float current = Mathf.Floor(AVPlayerConnect.AVPlayerGetCurrentPosition(avPlayer));
+            float duration = Mathf.Floor(videoDuration);
             if (currentTimeText != null)
             {
                 currentTimeText.text = "["

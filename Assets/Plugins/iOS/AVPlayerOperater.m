@@ -4,6 +4,7 @@
 //
 
 #import "AVPlayerOperater.h"
+#import "DebugLog.h"
 
 NS_ASSUME_NONNULL_BEGIN
 @interface AVPlayerOperater ()
@@ -25,6 +26,8 @@ NS_ASSUME_NONNULL_BEGIN
     
     BOOL _isObserverItemStatusContextActive;
     BOOL _isObserverPresentationSizeContextActive;
+    
+    float _playSpeed;
 }
 
 @end
@@ -33,6 +36,9 @@ NS_ASSUME_NONNULL_END
 static NSKeyValueObservingOptions s_ObservingOptions = NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew;
 static void* s_ObserveItemStatusContext = (void*)0x1;
 static void* s_ObservePresentationSizeContext = (void*)0x2;
+
+static NSUInteger s_VideoDefaultWidth = 3840;
+static NSUInteger s_VideoDefaultHeight = 2160;
 
 @implementation AVPlayerOperater
 
@@ -64,6 +70,8 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
         _videoOutput = [[AVPlayerItemVideoOutput alloc] initWithPixelBufferAttributes:attributes];
         // Callback
         self.playerCallback = [[AVPlayerCallback alloc] init];
+        // Values
+        _playSpeed = 1.f;
     }
     return self;
 }
@@ -97,6 +105,7 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
     NSLog(@"AVPlayerOperater: playWhenReady");
 
     [_avPlayer play];
+    _avPlayer.rate = _playSpeed;
 }
 
 - (void)pauseWhenReady
@@ -119,7 +128,10 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
 
 - (void)setPlayRate:(float)rate
 {
-    _avPlayer.rate = rate;
+    _playSpeed = rate;
+    if (_avPlayer.rate > 0) {
+        _avPlayer.rate = rate;
+    }
 }
 
 - (void)setVolume:(float)volume
@@ -205,13 +217,13 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
     }
     else if (context == s_ObservePresentationSizeContext) {
         AVPlayerItem* playerItem = _avPlayer.currentItem;
-        NSLog(@"AVPlayerOperater: New presentationSize (%f, %f)", playerItem.presentationSize.width, playerItem.presentationSize.height);
+        _videoSizeWidth = playerItem.presentationSize.width;
+        _videoSizeHeight = playerItem.presentationSize.height;
+        DebugLog(@"AVPlayerOperater: New presentationSize (%f, %f)", playerItem.presentationSize.width, playerItem.presentationSize.height);
         if (_outputTexture == nil) {
             // Create output texture
-            _videoSizeWidth = playerItem.presentationSize.width;
-            _videoSizeHeight = playerItem.presentationSize.height;
-           CGSize videoSize = CGSizeMake(playerItem.presentationSize.width, playerItem.presentationSize.height);
-           [self createOutputTextureWithSize:videoSize];
+            CGSize videoSize = CGSizeMake(s_VideoDefaultWidth, s_VideoDefaultHeight);
+            [self createOutputTextureWithSize:videoSize];
             if (_outputTexture != nil) {
                 // Notification
                 [self addAVPlayerItemDidPlayToEndTimeNotification];
@@ -221,8 +233,8 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
         }
         if (_outputTexture != nil) {
             // Video Size Callback
-            NSUInteger width = playerItem.presentationSize.width;
-            NSUInteger height = playerItem.presentationSize.height;
+             NSUInteger width = playerItem.presentationSize.width;
+             NSUInteger height = playerItem.presentationSize.height;
             if (_videoSizeCallbackHandle != nil && _videoSizeCallbackCaller != nil) {
                 (_videoSizeCallbackCaller)(self, (int)width, (int)height, _videoSizeCallbackHandle);
             }
@@ -316,6 +328,8 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
 
 #pragma mark - Private
 
+/// Prepare to play
+/// @param asset AVAsset
 -(void)prepareAsset:(AVAsset*)asset
 {
     NSLog(@"AVPlayerOperater: prepareAsset");
@@ -328,6 +342,8 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
     [_avPlayer replaceCurrentItemWithPlayerItem: _avPlayerItem];
 }
 
+/// Create a video output texture
+/// @param videoSize video size
 - (void)createOutputTextureWithSize:(CGSize)videoSize
 {
     if (_metalDevice == nil) {
@@ -347,6 +363,7 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
     _outputTexture = [_metalDevice newTextureWithDescriptor:descriptor];
 }
 
+/// Read texture buffer
 - (void)readBuffer
 {
     if (_metalDevice == nil) {
@@ -387,6 +404,9 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
     } // autoreleasepool
 }
 
+/// Copy from input texture to output texture
+/// @param width Width
+/// @param height Height
 - (void)copyTextureWithWidth:(NSUInteger)width height:(NSUInteger)height
 {
     if (_commandQueue == nil) {
