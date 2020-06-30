@@ -4,7 +4,6 @@
 //
 
 #import "AVPlayerOperater.h"
-#import "DebugLog.h"
 
 NS_ASSUME_NONNULL_BEGIN
 @interface AVPlayerOperater ()
@@ -219,7 +218,7 @@ static NSUInteger s_VideoDefaultHeight = 2160;
         AVPlayerItem* playerItem = _avPlayer.currentItem;
         _videoSizeWidth = playerItem.presentationSize.width;
         _videoSizeHeight = playerItem.presentationSize.height;
-        DebugLog(@"AVPlayerOperater: New presentationSize (%f, %f)", playerItem.presentationSize.width, playerItem.presentationSize.height);
+        NSLog(@"AVPlayerOperater: New presentationSize (%f, %f)", playerItem.presentationSize.width, playerItem.presentationSize.height);
         if (_outputTexture == nil) {
             // Create output texture
             CGSize videoSize = CGSizeMake(s_VideoDefaultWidth, s_VideoDefaultHeight);

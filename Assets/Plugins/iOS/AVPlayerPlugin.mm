@@ -1,12 +1,21 @@
-#import <Foundation/Foundation.h>
+//
+//  AVPlayerPlugin.mm
+//  Copyright (c) 2020 東亜プリン秘密研究所. All rights reserved.
+//
+
 #import <UIKit/UIKit.h>
+#import "UnityAppController.h"
 
 #include <map>
 
-#include "IUnityInterface.h"
-#include "IUnityGraphics.h"
-#include "IUnityGraphicsMetal.h"
-#include "AVPlayerOperater.h"
+#include "Unity/IUnityInterface.h"
+#include "Unity/IUnityGraphics.h"
+#include "Unity/IUnityGraphicsMetal.h"
+
+#import "AVPlayerOperater.h"
+#import "AVPlayerSetting.h"
+
+#define TAG @"AVPlayerPlugin"
 
 static IUnityInterfaces* s_UnityInterfaces = NULL;
 static IUnityGraphics* s_Graphics = NULL;
@@ -15,6 +24,8 @@ static bool initialized = false;
 
 static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType)
 {
+    NSLog(@"%@ OnGraphicsDeviceEvent", TAG);
+    
     switch (eventType)
     {
         case kUnityGfxDeviceEventInitialize:
@@ -35,6 +46,8 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
 // Unity プラグインロードイベント
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* unityInterfaces)
 {
+    NSLog(@"%@ UnityPluginLoad", TAG);
+    
     s_UnityInterfaces = unityInterfaces;
     s_Graphics = unityInterfaces->Get<IUnityGraphics>();
     s_MetalGraphics   = s_UnityInterfaces->Get<IUnityGraphicsMetal>();
@@ -49,8 +62,28 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
 // Unity プラグインアンロードイベント
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
 {
+    NSLog(@"%@ UnityPluginUnload", TAG);
+
     s_Graphics->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
 }
+
+#pragma mark - AppController
+
+@interface MyAppController : UnityAppController
+- (void)shouldAttachRenderDelegate;
+@end
+
+@implementation MyAppController
+- (void)shouldAttachRenderDelegate
+{
+    NSLog(@"%@ shouldAttachRenderDelegate", TAG);
+
+    UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
+    
+    [[AVPlayerSetting shared] loadFromDocument];
+}
+@end
+IMPL_APP_CONTROLLER_SUBCLASS(MyAppController);
 
 #pragma mark - Wrapper
 
@@ -69,15 +102,6 @@ static bool isExistOperater(AVPlayerOperater* op)
         }
     }
     return false;
-}
-
-// Attach the functions to the callback of plugin loaded event.
-extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API AVPlayerAttachPlugin()
-{
-    if (!initialized) {
-        UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
-        initialized = true;
-    }
 }
 
 extern "C" int AVPlayerGetEventID(AVPlayerOperater* op)
@@ -107,11 +131,6 @@ extern "C" void AVPlayerSetTexturePtr(AVPlayerOperater* op, id<MTLTexture> textu
 extern "C" AVPlayerOperater* AVPlayerCreate()
 {
     NSLog(@"AVPlayerPlugin: AVPlayerCreate");
-
-    if (!initialized) {
-        UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
-        initialized = true;
-    }
     
     s_avPlayerOperaterNumber ++;
     AVPlayerOperater* op = [[AVPlayerOperater alloc] initWithIndex:s_avPlayerOperaterNumber device:s_MetalGraphics->MetalDevice()];
@@ -280,6 +299,21 @@ extern "C" void AVPlayerSetOnEndTime(AVPlayerOperater* op, const char* objectNam
     }
     op.playerCallback.unityObjectName = [NSString stringWithUTF8String:objectName];
     op.playerCallback.unityMethodNameDidEnd = [NSString stringWithUTF8String:methodName];
+}
+
+#pragma mark Setting values
+
+static const char* GetConstCharBuffer(NSString* string)
+{
+    const char* utf8string = [string UTF8String];
+    char* buffer = (char*)malloc(strlen(utf8string) + 1);
+    strcpy(buffer, utf8string);
+    return (const char*)buffer;
+}
+
+extern "C" const char* AVPlayerGetSettingName()
+{
+    return GetConstCharBuffer([[AVPlayerSetting shared] getName]);
 }
 
 #pragma mark - Render

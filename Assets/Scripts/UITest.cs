@@ -8,10 +8,13 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
+using AVPlayer;
 
 public class UITest : MonoBehaviour
 {
     [SerializeField] private Slider testSlider = null;
+    [SerializeField] private Text debugText = null;
+
     private ListDialog listDialog;
     private float movedValue;
     private float prevValue;
@@ -40,6 +43,10 @@ public class UITest : MonoBehaviour
                     prevValue = value;
                 };
             }
+        }
+        if (debugText != null)
+        {
+            debugText.text = AVPlayerConnect.AVPlayerGetSettingName();
         }
     }
 
