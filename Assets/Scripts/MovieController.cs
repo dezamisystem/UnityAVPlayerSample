@@ -28,6 +28,8 @@ public class MovieController : MonoBehaviour
 
     // private const string TEST_CONTENT_PATH = "https://dezamisystem.com/movie/vtuber/index.m3u8";
     private const string TEST_CONTENT_PATH = "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8";
+    // private const string TEST_CONTENT_PATH = "https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8"
+    // private const string TEST_CONTENT_PATH = "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8";
 
     private const int s_VideoDefaultWidth = 3840;
     private const int s_VideoDefaultHeight = 2160;

@@ -13,7 +13,6 @@
 #include "Unity/IUnityGraphicsMetal.h"
 
 #import "AVPlayerOperater.h"
-#import "AVPlayerSetting.h"
 
 #define TAG @"AVPlayerPlugin"
 
@@ -79,8 +78,6 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
     NSLog(@"%@ shouldAttachRenderDelegate", TAG);
 
     UnityRegisterRenderingPluginV5(&UnityPluginLoad, &UnityPluginUnload);
-    
-    [[AVPlayerSetting shared] loadFromDocument];
 }
 @end
 IMPL_APP_CONTROLLER_SUBCLASS(MyAppController);
@@ -301,20 +298,18 @@ extern "C" void AVPlayerSetOnEndTime(AVPlayerOperater* op, const char* objectNam
     op.playerCallback.unityMethodNameDidEnd = [NSString stringWithUTF8String:methodName];
 }
 
-#pragma mark Setting values
+// static const char* GetConstCharBuffer(NSString* string)
+// {
+//     const char* utf8string = [string UTF8String];
+//     char* buffer = (char*)malloc(strlen(utf8string) + 1);
+//     strcpy(buffer, utf8string);
+//     return (const char*)buffer;
+// }
 
-static const char* GetConstCharBuffer(NSString* string)
-{
-    const char* utf8string = [string UTF8String];
-    char* buffer = (char*)malloc(strlen(utf8string) + 1);
-    strcpy(buffer, utf8string);
-    return (const char*)buffer;
-}
-
-extern "C" const char* AVPlayerGetSettingName()
-{
-    return GetConstCharBuffer([[AVPlayerSetting shared] getName]);
-}
+// extern "C" const char* AVPlayerGetSettingName()
+// {
+//     return GetConstCharBuffer([[AVPlayerSetting shared] getName]);
+// }
 
 #pragma mark - Render
 

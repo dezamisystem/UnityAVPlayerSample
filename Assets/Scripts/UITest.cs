@@ -19,6 +19,36 @@ public class UITest : MonoBehaviour
     private float movedValue;
     private float prevValue;
 
+    private string settingKey;
+    private string settingValue;
+
+    void Awake()
+    {
+        settingKey = "";
+        settingValue = "";
+        const string KeyContent = "CONTENT";
+        const string ValueContent = "AllYourBaseAreBelongToUs!";
+        var settingPath = Application.persistentDataPath + "/unityavplayersample.txt";
+        if (!File.Exists(settingPath))
+        {
+            var settingText = KeyContent + "=" + ValueContent;
+            File.WriteAllText(settingPath, settingText);
+        }
+        var settingLines = File.ReadAllLines(settingPath);
+        foreach (var line in settingLines)
+        {
+            var trueLine = line.Replace(" ","");
+            string[] paramArray = trueLine.Split('=');
+            if (paramArray.Length >= 2)
+            {
+                settingKey = paramArray[0];
+                if (paramArray[0].Equals(KeyContent)){
+                    settingValue = paramArray[1];
+                }
+            }
+        }
+    }
+
     void Start()
     {
         if (testSlider != null)
@@ -46,7 +76,7 @@ public class UITest : MonoBehaviour
         }
         if (debugText != null)
         {
-            debugText.text = AVPlayerConnect.AVPlayerGetSettingName();
+            debugText.text = settingKey + " = " + settingValue;
         }
     }
 

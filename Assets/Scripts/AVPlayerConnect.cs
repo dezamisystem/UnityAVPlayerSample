@@ -138,13 +138,6 @@ namespace AVPlayer {
 
         #if UNITY_IOS && !UNITY_EDITOR
             [DllImport ("__Internal")]
-            public static extern string AVPlayerGetSettingName();
-        #else
-            public static string AVPlayerGetSettingName() { return ""; }
-        #endif
-
-        #if UNITY_IOS && !UNITY_EDITOR
-            [DllImport ("__Internal")]
             public static extern void AVPlayerSetOnReady(IntPtr op, string objectName, string methodName);
         #else
             public static void AVPlayerSetOnReady(IntPtr op, string objectName, string methodName) {}
