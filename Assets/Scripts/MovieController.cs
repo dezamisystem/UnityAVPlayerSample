@@ -39,15 +39,22 @@ public class MovieController : MonoBehaviour
     private IntPtr renderEventFunc;
     private bool isSeekSliderDoing;
     private bool isSeekWaiting;
-    private float videoDuration;
     private float movedSeekValue = 0;
     private float prevSeekValue = 0;
     private float enableSeekRange = 10;
     private SynchronizationContext currentContext;
+    private float defaultImageWidth;
+    private float defaultImageHeight;
 
     // Start is called before the first frame update
     void Start()
     {
+        if (videoImage != null)
+        {
+            var transform = videoImage.GetComponent<RectTransform>();
+            defaultImageWidth = transform.sizeDelta.x;
+            defaultImageHeight = transform.sizeDelta.y;
+        }
         currentContext = SynchronizationContext.Current;
 
         avPlayer = IntPtr.Zero;
@@ -76,41 +83,34 @@ public class MovieController : MonoBehaviour
         }
         renderEventId = AVPlayerConnect.AVPlayerGetEventID(avPlayer);
         renderEventFunc = AVPlayerConnect.AVPlayerGetRenderEventFunc();
+        // Ready Callback setting
         AVPlayerConnect.AVPlayerSetOnReady(
             avPlayer,
             transform.root.gameObject.name,
             ((Action<string>)CallbackReadyPlayer).Method.Name);
+        // VideoSize Callback settings
+        VideoSizeEvent videoSizeEvent = new VideoSizeEvent();
+        videoSizeEvent.SetCallback(avPlayer, (sender,width,height)=>
+        {
+            currentContext.Post(_ => 
+            {
+                UpdateVideoImageSize(width, height);
+            },null);
+        });
         AVPlayerConnect.AVPlayerSetContent(avPlayer, TEST_CONTENT_PATH);
     }
 
     private void CallbackReadyPlayer(string message)
     {
-        videoDuration = AVPlayerConnect.AVPlayerGetDuration(avPlayer);
-        // Texture settings
-        IntPtr texPtr = AVPlayerConnect.AVPlayerGetTexturePtr(avPlayer);
-        Texture2D texture = Texture2D.CreateExternalTexture(
-            512,
-            512,
-            TextureFormat.BGRA32,
-            false,
-            false,
-            texPtr);
-        texture.UpdateExternalTexture(texPtr);
-        if (videoImage != null)
-        {
-            videoImage.texture = texture;
-            float width = AVPlayerConnect.AVPlayerGetVideoWidth(avPlayer);
-            float height = AVPlayerConnect.AVPlayerGetVideoHeight(avPlayer);
-            UpdateVideoImageSize(width, height);
-        }
-        StartCoroutine(OnRender());
+        // Start render
+        // StartCoroutine(OnRender());
 
         // Seek settings
         enableSeekRange = AVPlayerConnect.AVPlayerGetDuration(avPlayer) / 100;
         if (seekSlider != null)
         {
             seekSlider.interactable = true;
-            seekSlider.maxValue = videoDuration;
+            seekSlider.maxValue = AVPlayerConnect.AVPlayerGetDuration(avPlayer);
             seekSlider.minValue = 0f;
             seekSlider.value = 0f;
             SliderEventTrigger trigger = seekSlider.GetComponentInChildren<SliderEventTrigger>();
@@ -138,16 +138,11 @@ public class MovieController : MonoBehaviour
             });
         }
 
-        // Other Callback settings
+        // EndTime Callback setting
         AVPlayerConnect.AVPlayerSetOnEndTime(
             avPlayer,
             transform.root.gameObject.name,
             ((Action<string>)CallbackEndTime).Method.Name);
-        VideoSizeEvent videoSizeEvent = new VideoSizeEvent();
-        videoSizeEvent.SetCallback(avPlayer, (sender,width,height)=>
-        {
-            UpdateVideoImageSize(width, height);
-        });
 
         // UI settings
         if (prepareButton != null)
@@ -241,7 +236,6 @@ public class MovieController : MonoBehaviour
 
     public void SeekSliderDrag()
     {
-        // OnSeek();
         if (seekSlider != null && !isSeekWaiting)
         {
             var value = seekSlider.value;
@@ -266,17 +260,56 @@ public class MovieController : MonoBehaviour
         for (;;) 
         {
             yield return new WaitForEndOfFrame();
-            Assert.IsFalse(renderEventFunc.Equals(IntPtr.Zero),"renderEventFunc is Zero");
-            Assert.IsTrue(renderEventId>0, "renderEventId <= 0");
             GL.IssuePluginEvent(renderEventFunc,renderEventId);
         }
     }
 
+    private void UpdateVideoTexture(float width, float height)
+    {
+        StopCoroutine(OnRender());
+
+        // Update Texture
+        IntPtr texPtr = AVPlayerConnect.AVPlayerGetTexturePtr(avPlayer);
+        Texture2D texture = Texture2D.CreateExternalTexture(
+            512,
+            512,
+            TextureFormat.BGRA32,
+            false,
+            false,
+            texPtr);
+        texture.UpdateExternalTexture(texPtr);
+        if (videoImage != null)
+        {
+            // Set Texture
+            videoImage.texture = texture;
+            videoImage.uvRect = new Rect(0, 0, 1, -1);
+            // Resize
+            var imageTransform = videoImage.GetComponent<RectTransform>();
+            var imageSizeDelta = imageTransform.sizeDelta;
+            var imageAspect = imageSizeDelta.x / imageSizeDelta.y;
+            var videoAspect = width / height;
+            if (videoAspect > imageAspect)
+            {
+                // height
+                imageSizeDelta.y = defaultImageWidth * height / width;
+                imageSizeDelta.x = defaultImageWidth;
+                videoImage.GetComponent<RectTransform>().sizeDelta = imageSizeDelta;
+            }
+            else if (videoAspect < imageAspect)
+            {
+                // width
+                imageSizeDelta.x = defaultImageHeight * width / height;
+                imageSizeDelta.y = defaultImageHeight;
+                videoImage.GetComponent<RectTransform>().sizeDelta = imageSizeDelta;
+            }
+        }
+
+        StartCoroutine(OnRender());
+    }
+
     public void UpdateVideoImageSize(float width, float height)
     {
-        var u = width / s_VideoDefaultWidth;
-        var v = height / s_VideoDefaultHeight;
-        UpdateVideoImageRect(u,v);
+        UpdateVideoTexture(width,height);
     }
 
     public void UpdateVideoImageRect(float u, float v)
@@ -301,7 +334,7 @@ public class MovieController : MonoBehaviour
         {
             yield return new WaitForEndOfFrame();
             float current = Mathf.Floor(AVPlayerConnect.AVPlayerGetCurrentPosition(avPlayer));
-            float duration = Mathf.Floor(videoDuration);
+            float duration = Mathf.Floor(AVPlayerConnect.AVPlayerGetDuration(avPlayer));
             if (currentTimeText != null)
             {
                 currentTimeText.text = "["

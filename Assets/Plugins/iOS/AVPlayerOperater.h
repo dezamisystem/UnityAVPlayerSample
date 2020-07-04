@@ -18,19 +18,13 @@ typedef void (*VideoSizeCallbackCaller)(AVPlayerOperater* sender, int width, int
 
 @property (nonatomic) NSUInteger index;
 
-@property (nonatomic, strong, getter=getOutputTexture, setter=setOutputTexture:) id<MTLTexture> outputTexture;
+@property (nonatomic, strong, nullable) id<MTLTexture> outputTexture;
 
 @property (nonatomic) BOOL isLoopPlay;
-
-//@property (nonatomic, weak) id<AVPlayerOperaterDelegate> delegate;
 
 @property (nonatomic, strong) AVPlayerCallback* playerCallback;
 
 - (id)initWithIndex:(NSUInteger)index device:(MTLDeviceRef)device;
-
-- (id<MTLTexture>)getOutputTexture;
-
-- (void)setOutputTexture:(id<MTLTexture>)texture;
 
 - (void)setPlayerItemWithPath:(NSString*)contentPath;
 
@@ -55,6 +49,8 @@ typedef void (*VideoSizeCallbackCaller)(AVPlayerOperater* sender, int width, int
 - (NSUInteger)getVideoWidth;
 
 - (NSUInteger)getVideoHeight;
+
+- (NSUInteger)getTrackCountWithMediaType:(AVMediaType)type;
 
 - (void)updateVideo;
 

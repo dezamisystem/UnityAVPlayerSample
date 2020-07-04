@@ -114,7 +114,7 @@ extern "C" id<MTLTexture> AVPlayerGetTexturePtr(AVPlayerOperater* op)
     if (!isExistOperater(op)) {
         return NULL;
     }
-    return [op getOutputTexture];
+    return op.outputTexture;
 }
 
 extern "C" void AVPlayerSetTexturePtr(AVPlayerOperater* op, id<MTLTexture> texture)
@@ -122,7 +122,7 @@ extern "C" void AVPlayerSetTexturePtr(AVPlayerOperater* op, id<MTLTexture> textu
     if (!isExistOperater(op)) {
         return;
     }
-    [op setOutputTexture:texture];
+    op.outputTexture = texture;
 }
 
 extern "C" AVPlayerOperater* AVPlayerCreate()
@@ -232,7 +232,7 @@ extern "C" float AVPlayerGetDuration(AVPlayerOperater* op)
 extern "C" bool AVPlayerIsPlaying(AVPlayerOperater* op)
 {
     if (!isExistOperater(op)) {
-        return 0.f;
+        return false;
     }
     return [op isPlaying];
 }
@@ -252,6 +252,16 @@ extern "C" int AVPlayerGetVideoHeight(AVPlayerOperater* op)
     }
     return (int)[op getVideoHeight];
 }
+
+extern "C" bool AVPlayerIsLoop(AVPlayerOperater* op)
+{
+    if (!isExistOperater(op)) {
+        return false;
+    }
+    return op.isLoopPlay;
+}
+
+#pragma mark - Callbacks
 
 extern "C" void AVPlayerSetOnReady(AVPlayerOperater* op, const char* objectName, const char* methodName)
 {
@@ -298,18 +308,13 @@ extern "C" void AVPlayerSetOnEndTime(AVPlayerOperater* op, const char* objectNam
     op.playerCallback.unityMethodNameDidEnd = [NSString stringWithUTF8String:methodName];
 }
 
-// static const char* GetConstCharBuffer(NSString* string)
-// {
-//     const char* utf8string = [string UTF8String];
-//     char* buffer = (char*)malloc(strlen(utf8string) + 1);
-//     strcpy(buffer, utf8string);
-//     return (const char*)buffer;
-// }
-
-// extern "C" const char* AVPlayerGetSettingName()
-// {
-//     return GetConstCharBuffer([[AVPlayerSetting shared] getName]);
-// }
+extern "C" void AVPlayerCallbackOnVideoSize(AVPlayerOperater* op, void* methodHandle, VideoSizeCallbackCaller caller)
+{
+    if (!isExistOperater(op)) {
+        return;
+    }
+    [op setVideoSizeCallbackWithHandle:methodHandle caller:caller];
+}
 
 #pragma mark - Render
 
@@ -330,16 +335,5 @@ extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API AVPlay
 {
     return OnRenderEvent;
 }
-
-#pragma mark - Callbacks
-
-extern "C" void AVPlayerCallbackOnVideoSize(AVPlayerOperater* op, void* methodHandle, VideoSizeCallbackCaller caller) 
-{
-    if (!isExistOperater(op)) {
-        return;
-    }
-    [op setVideoSizeCallbackWithHandle:methodHandle caller:caller];
-}
-
 
 // EOF

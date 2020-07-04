@@ -36,9 +36,6 @@ static NSKeyValueObservingOptions s_ObservingOptions = NSKeyValueObservingOption
 static void* s_ObserveItemStatusContext = (void*)0x1;
 static void* s_ObservePresentationSizeContext = (void*)0x2;
 
-static NSUInteger s_VideoDefaultWidth = 3840;
-static NSUInteger s_VideoDefaultHeight = 2160;
-
 @implementation AVPlayerOperater
 
 #pragma mark - Public
@@ -56,6 +53,7 @@ static NSUInteger s_VideoDefaultHeight = 2160;
     if (self = [super init]) {
         self.index = index;
         _avPlayer = [[AVPlayer alloc] init];
+        _avPlayer.actionAtItemEnd = AVPlayerActionAtItemEndNone;
         // Metal
         _metalDevice = device;
         if (device != nil) {
@@ -71,6 +69,8 @@ static NSUInteger s_VideoDefaultHeight = 2160;
         self.playerCallback = [[AVPlayerCallback alloc] init];
         // Values
         _playSpeed = 1.f;
+        _videoSizeWidth = 0;
+        _videoSizeHeight = 0;
     }
     return self;
 }
@@ -179,6 +179,30 @@ static NSUInteger s_VideoDefaultHeight = 2160;
     return _videoSizeHeight;
 }
 
+- (NSUInteger)getTrackCountWithMediaType:(AVMediaType)type
+{
+    if (_avPlayerItem == nil) {
+        return 0;
+    }
+    NSArray<AVAssetTrack *> *tracks = [_avPlayerItem.asset tracksWithMediaType:type];
+    return tracks.count;
+}
+
+// TODO: track info
+//- (NSUInteger)getTrackNameWithMediaType:(AVMediaType)type index:(NSUInteger)index
+//{
+//    if (_avPlayerItem == nil) {
+//        return 0;
+//    }
+//    NSArray<AVAssetTrack *> *tracks = [_avPlayerItem.asset tracksWithMediaType:type];
+//    if (index <= tracks.count) {
+//        return 0;
+//    }
+//    AVAssetTrack* track = tracks[index];
+//
+//    return 0;
+//}
+
 #pragma mark Render
 
 - (void)updateVideo
@@ -210,32 +234,30 @@ static NSUInteger s_VideoDefaultHeight = 2160;
         if (status == AVPlayerItemStatusReadyToPlay) {
             [self removeAVPlayerItemStatusObserver];
             [self addAVPlayerCurrentItemPresentationSizeObserver];
-            
+            // Notification
+            [self addAVPlayerItemDidPlayToEndTimeNotification];
+            // callback
+            [self.playerCallback onReady];
+
             NSLog(@"AVPlayerOperater: status == AVPlayerItemStatusReadyToPlay");
         }
     }
     else if (context == s_ObservePresentationSizeContext) {
         AVPlayerItem* playerItem = _avPlayer.currentItem;
-        _videoSizeWidth = playerItem.presentationSize.width;
-        _videoSizeHeight = playerItem.presentationSize.height;
-        NSLog(@"AVPlayerOperater: New presentationSize (%f, %f)", playerItem.presentationSize.width, playerItem.presentationSize.height);
-        if (_outputTexture == nil) {
+        NSUInteger width = playerItem.presentationSize.width;
+        NSUInteger height = playerItem.presentationSize.height;
+        NSLog(@"AVPlayerOperater: New presentationSize (%lu, %lu)", width, height);
+        if (!(width == _videoSizeWidth && height == _videoSizeHeight)) {
+            NSLog(@"AVPlayerOperater: update output texture");
+            _videoSizeWidth = width;
+            _videoSizeHeight = height;
+            self.outputTexture = nil;
             // Create output texture
-            CGSize videoSize = CGSizeMake(s_VideoDefaultWidth, s_VideoDefaultHeight);
-            [self createOutputTextureWithSize:videoSize];
-            if (_outputTexture != nil) {
-                // Notification
-                [self addAVPlayerItemDidPlayToEndTimeNotification];
-                // callback
-                [self.playerCallback onReady];
-            }
-        }
-        if (_outputTexture != nil) {
+            CGSize videoSize = CGSizeMake(_videoSizeWidth, _videoSizeHeight);
+            self.outputTexture = [self createOutputTextureWithSize:videoSize];
             // Video Size Callback
-             NSUInteger width = playerItem.presentationSize.width;
-             NSUInteger height = playerItem.presentationSize.height;
             if (_videoSizeCallbackHandle != nil && _videoSizeCallbackCaller != nil) {
-                (_videoSizeCallbackCaller)(self, (int)width, (int)height, _videoSizeCallbackHandle);
+                (_videoSizeCallbackCaller)(self, (int)_videoSizeWidth, (int)_videoSizeHeight, _videoSizeCallbackHandle);
             }
         }
     }
@@ -300,7 +322,7 @@ static NSUInteger s_VideoDefaultHeight = 2160;
 
 - (void)didPlayToEndTime:(NSNotification*)notification
 {
-    if (_isLoopPlay) {
+    if (self.isLoopPlay) {
         [_avPlayer seekToTime:kCMTimeZero completionHandler:^(BOOL finished) {
             [_avPlayer play];
         }];
@@ -343,23 +365,24 @@ static NSUInteger s_VideoDefaultHeight = 2160;
 
 /// Create a video output texture
 /// @param videoSize video size
-- (void)createOutputTextureWithSize:(CGSize)videoSize
+/// @return MTLTextureRef
+- (MTLTextureRef)createOutputTextureWithSize:(CGSize)videoSize
 {
     if (_metalDevice == nil) {
-        return;
+        return nil;
     }
     if (videoSize.width == 0) {
-        return;
+        return nil;
     }
     if (videoSize.height == 0) {
-        return;
+        return nil;
     }
     MTLTextureDescriptor* descriptor =
     [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
                                                        width:videoSize.width
                                                       height:videoSize.height
                                                    mipmapped:NO];
-    _outputTexture = [_metalDevice newTextureWithDescriptor:descriptor];
+    return [_metalDevice newTextureWithDescriptor:descriptor];
 }
 
 /// Read texture buffer
@@ -414,7 +437,7 @@ static NSUInteger s_VideoDefaultHeight = 2160;
     if (_inputTexture == nil) {
         return;
     }
-    if (_outputTexture == nil) {
+    if (self.outputTexture == nil) {
         return;
     }
 
@@ -425,13 +448,14 @@ static NSUInteger s_VideoDefaultHeight = 2160;
                  sourceLevel:0
                 sourceOrigin:MTLOriginMake(0, 0, 0)
                   sourceSize:MTLSizeMake(width, height, _inputTexture.depth)
-                   toTexture:_outputTexture
+                   toTexture:self.outputTexture
             destinationSlice:0
             destinationLevel:0
            destinationOrigin:MTLOriginMake(0, 0, 0)];
     [encoder endEncoding];
     [commandBuffer commit];
     [commandBuffer waitUntilCompleted];
+    _inputTexture = nil;
 }
 
 @end

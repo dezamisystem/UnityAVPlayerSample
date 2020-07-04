@@ -138,6 +138,15 @@ namespace AVPlayer {
 
         #if UNITY_IOS && !UNITY_EDITOR
             [DllImport ("__Internal")]
+            public static extern bool AVPlayerIsLoop(IntPtr op);
+        #else
+            public static bool AVPlayerIsLoop(IntPtr op) { return false; }
+        #endif
+
+#region CALLBACKS
+
+        #if UNITY_IOS && !UNITY_EDITOR
+            [DllImport ("__Internal")]
             public static extern void AVPlayerSetOnReady(IntPtr op, string objectName, string methodName);
         #else
             public static void AVPlayerSetOnReady(IntPtr op, string objectName, string methodName) {}
@@ -157,5 +166,6 @@ namespace AVPlayer {
             public static void AVPlayerSetOnEndTime(IntPtr op, string objectName, string methodName) {}
         #endif
 
+#endregion // CALLBACKS
     }
 }
