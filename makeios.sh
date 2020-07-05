@@ -8,8 +8,9 @@ OUTPUT_PATH=$OUTPUT_PATH_IOS
 BUILD_TARGET="ios"
 UNITY_LOG_PATH="${UNITY_LOG_DIR}/makeios.log"
 
-#-quit
-MAKE_COMMAND="${UNITY_APP_PATH} -batchmode -runEditorTests -projectPath ${UNITY_PROJECT_PATH} -executeMethod ${UNITY_BUILD_NAME} -logFile ${UNITY_LOG_PATH} -output-path ${OUTPUT_PATH} -build-target ${BUILD_TARGET} ${UNITY_BUILD_VARIANT}"
+#
+#-runEditorTests 
+MAKE_COMMAND="${UNITY_APP_PATH} -batchmode -quit -projectPath ${UNITY_PROJECT_PATH} -executeMethod ${UNITY_BUILD_NAME} -logFile ${UNITY_LOG_PATH} -output-path ${OUTPUT_PATH} -build-target ${BUILD_TARGET} ${UNITY_BUILD_VARIANT}"
 echo "${MAKE_COMMAND}"
 $MAKE_COMMAND
 

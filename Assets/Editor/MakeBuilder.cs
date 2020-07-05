@@ -122,4 +122,43 @@ public class MakeBuilder
 
         return args[paramIndex];
     }
+
+    [MenuItem ("Build/iOS")]
+    static void BuildMenuItemForIos() 
+    {
+        BuildForIos(false);
+    }
+
+    public static void BuildForIos(bool isCommand)
+    {
+        // 現在の設定を控える
+        BuildTarget prevPlatform = EditorUserBuildSettings.activeBuildTarget;
+        BuildTargetGroup prevGroup = EditorUserBuildSettings.selectedBuildTargetGroup;
+
+        // 出力フォルダ
+        var outputPath = "./build/ios";
+        // オプション指定
+        var buildOptions = BuildOptions.ShowBuiltPlayer
+         | BuildOptions.AcceptExternalModificationsToPlayer
+          | BuildOptions.SymlinkLibraries
+           | BuildOptions.ConnectToHost
+            | BuildOptions.Development;
+
+        // 実行
+        var report = BuildPipeline.BuildPlayer(
+            GetBuildScenePaths(),
+            outputPath,
+            BuildTarget.iOS,
+            buildOptions);
+
+        // 元に戻す
+        EditorUserBuildSettings.SwitchActiveBuildTarget(prevGroup, prevPlatform);
+
+        // 結果
+        if (isCommand)
+        {
+            int result = report.summary.result == BuildResult.Succeeded ? 0 : 1;
+            EditorApplication.Exit(result);
+        }
+    }
 }
