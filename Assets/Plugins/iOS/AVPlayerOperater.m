@@ -5,6 +5,8 @@
 
 #import "AVPlayerOperater.h"
 
+#define TAG @"AVPlayerOperater"
+
 NS_ASSUME_NONNULL_BEGIN
 @interface AVPlayerOperater ()
 {
@@ -44,12 +46,13 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
 
 - (id)init
 {
-    NSAssert(NO, @"AVPlayerOperater init must never be called!");
+    NSAssert(NO, @"%@: init must never be called!", TAG);
     return nil;
 }
 
 - (id)initWithIndex:(NSUInteger)index device:(MTLDeviceRef)device
 {
+    NSLog(@"%@: initWithIndex", TAG);    
     if (self = [super init]) {
         self.index = index;
         _avPlayer = [[AVPlayer alloc] init];
@@ -79,22 +82,22 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
 
 - (void)setPlayerItemWithPath:(NSString*)contentPath
 {
-    NSLog(@"AVPlayerOperater: setPlayerItemWithPath");
+    NSLog(@"%@: setPlayerItemWithPath", TAG);
     if (contentPath == nil) {
-        NSLog(@"AVPlayerOperater: contentPath is nil!");
+        NSLog(@"%@: contentPath is nil!", TAG);
         return;
     }
     NSURL* contentUrl = [NSURL URLWithString:contentPath];
     if (contentUrl == nil) {
-        NSLog(@"AVPlayerOperater: contentUrl is nil!");
+        NSLog(@"%@: contentUrl is nil!", TAG);
         return;
     }
     AVURLAsset* contentAsset = [AVURLAsset URLAssetWithURL:contentUrl options:nil];
     if (contentAsset == nil) {
-        NSLog(@"AVPlayerOperater: contentAsset is nil!");
+        NSLog(@"%@: contentAsset is nil!", TAG);
         return;
     }
-    NSLog(@"AVPlayerOperater: contentPath = %@", contentPath);
+    NSLog(@"%@: contentPath = %@", TAG, contentPath);
     // Asset prepareing
     [self prepareAsset:contentAsset];
 }
@@ -246,9 +249,8 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
         AVPlayerItem* playerItem = _avPlayer.currentItem;
         NSUInteger width = playerItem.presentationSize.width;
         NSUInteger height = playerItem.presentationSize.height;
-        NSLog(@"AVPlayerOperater: New presentationSize (%lu, %lu)", width, height);
         if (!(width == _videoSizeWidth && height == _videoSizeHeight)) {
-            NSLog(@"AVPlayerOperater: update output texture");
+            NSLog(@"%@: New presentationSize (%lu, %lu)", TAG, width, height);
             _videoSizeWidth = width;
             _videoSizeHeight = height;
             self.outputTexture = nil;
@@ -377,6 +379,7 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
     if (videoSize.height == 0) {
         return nil;
     }
+    NSLog(@"%@: createOutputTextureWithSize", TAG);
     MTLTextureDescriptor* descriptor =
     [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
                                                        width:videoSize.width

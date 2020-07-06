@@ -13,6 +13,7 @@
 #include "Unity/IUnityGraphicsMetal.h"
 
 #import "AVPlayerOperater.h"
+#import "OreLog.h"
 
 #define TAG @"AVPlayerPlugin"
 
@@ -69,10 +70,15 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
 #pragma mark - AppController
 
 @interface MyAppController : UnityAppController
+- (void)preStartUnity;
 - (void)shouldAttachRenderDelegate;
 @end
 
 @implementation MyAppController
+- (void)preStartUnity
+{
+    [OreLog redirectLogToDocuments];
+}
 - (void)shouldAttachRenderDelegate
 {
     NSLog(@"%@ shouldAttachRenderDelegate", TAG);
