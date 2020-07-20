@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using AVPlayer;
 
@@ -108,6 +109,11 @@ public class UITest : MonoBehaviour
     {
         Debug.Log("index = "+sender.index);
         listDialog.CloseDialog();
+    }
+
+    public void GoPlayerScene()
+    {
+        SceneManager.LoadScene("AVPlayerScene");
     }
 
     public void TakeScreenshot()

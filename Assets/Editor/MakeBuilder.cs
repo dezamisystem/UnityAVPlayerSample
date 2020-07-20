@@ -138,7 +138,7 @@ public class MakeBuilder
         // 出力フォルダ
         var outputPath = "./build/ios";
         // オプション指定
-        var buildOptions = BuildOptions.ShowBuiltPlayer
+        var buildOptions = BuildOptions.AutoRunPlayer
          | BuildOptions.AcceptExternalModificationsToPlayer
           | BuildOptions.SymlinkLibraries
            | BuildOptions.ConnectToHost

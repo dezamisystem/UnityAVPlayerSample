@@ -77,7 +77,7 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
 @implementation MyAppController
 - (void)preStartUnity
 {
-    [OreLog redirectLogToDocuments];
+//    [OreLog redirectLogToDocuments];
 }
 - (void)shouldAttachRenderDelegate
 {

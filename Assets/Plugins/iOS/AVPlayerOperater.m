@@ -253,10 +253,11 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
             NSLog(@"%@: New presentationSize (%lu, %lu)", TAG, width, height);
             _videoSizeWidth = width;
             _videoSizeHeight = height;
-            self.outputTexture = nil;
-            // Create output texture
-            CGSize videoSize = CGSizeMake(_videoSizeWidth, _videoSizeHeight);
-            self.outputTexture = [self createOutputTextureWithSize:videoSize];
+            if (self.outputTexture == nil) {
+                // Create output texture
+                CGSize videoSize = CGSizeMake(width, height);
+                self.outputTexture = [self createOutputTextureWithSize:videoSize];
+            }
             // Video Size Callback
             if (_videoSizeCallbackHandle != nil && _videoSizeCallbackCaller != nil) {
                 (_videoSizeCallbackCaller)(self, (int)_videoSizeWidth, (int)_videoSizeHeight, _videoSizeCallbackHandle);
@@ -439,6 +440,17 @@ static void* s_ObservePresentationSizeContext = (void*)0x2;
     }
     if (_inputTexture == nil) {
         return;
+    }
+    if (self.outputTexture == nil) {
+        return;
+    }
+    
+    // Size check of difference
+    if (!(width == self.outputTexture.width && height == self.outputTexture.height)) {
+        self.outputTexture = nil;
+        // Create output texture
+        CGSize videoSize = CGSizeMake(width, height);
+        self.outputTexture = [self createOutputTextureWithSize:videoSize];
     }
     if (self.outputTexture == nil) {
         return;

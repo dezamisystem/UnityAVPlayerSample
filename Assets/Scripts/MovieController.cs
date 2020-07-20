@@ -103,7 +103,7 @@ public class MovieController : MonoBehaviour
     private void CallbackReadyPlayer(string message)
     {
         // Start render
-        // StartCoroutine(OnRender());
+        StartCoroutine(OnRender());
 
         // Seek settings
         enableSeekRange = AVPlayerConnect.AVPlayerGetDuration(avPlayer) / 100;
@@ -266,8 +266,6 @@ public class MovieController : MonoBehaviour
 
     private void UpdateVideoTexture(float width, float height)
     {
-        StopCoroutine(OnRender());
-
         // Update Texture
         IntPtr texPtr = AVPlayerConnect.AVPlayerGetTexturePtr(avPlayer);
         Texture2D texture = Texture2D.CreateExternalTexture(
@@ -303,8 +301,6 @@ public class MovieController : MonoBehaviour
                 videoImage.GetComponent<RectTransform>().sizeDelta = imageSizeDelta;
             }
         }
-
-        StartCoroutine(OnRender());
     }
 
     public void UpdateVideoImageSize(float width, float height)
